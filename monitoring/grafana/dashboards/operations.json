@@ -1,0 +1,45 @@
+{
+  "title": "Retention API — Operations",
+  "uid": "retention-ops",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["retention", "ops"],
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [{"expr": "rate(http_requests_total[5m])", "legendFormat": "{{method}} {{endpoint}}"}]
+    },
+    {
+      "title": "Request Latency (p95)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [{"expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))", "legendFormat": "{{endpoint}}"}]
+    },
+    {
+      "title": "Error Rate by Endpoint",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [{"expr": "rate(http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "{{endpoint}}"}]
+    },
+    {
+      "title": "Model Loaded",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 8},
+      "targets": [{"expr": "model_loaded"}]
+    },
+    {
+      "title": "Inference Latency (p50)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 4, "y": 8},
+      "targets": [{"expr": "histogram_quantile(0.50, rate(inference_duration_seconds_bucket[5m]))", "legendFormat": "{{endpoint}}"}]
+    },
+    {
+      "title": "Active Endpoints",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 8},
+      "targets": [{"expr": "count(http_requests_total)", "legendFormat": "endpoints"}]
+    }
+  ]
+}

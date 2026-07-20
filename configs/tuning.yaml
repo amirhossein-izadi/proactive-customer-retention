@@ -1,0 +1,37 @@
+# Hyperparameter tuning configuration
+enabled: true
+framework: optuna
+
+storage:
+  type: sqlite
+  directory: artifacts/optuna
+
+sampler:
+  name: tpe
+  seed: 4205
+  multivariate: true
+
+pruner:
+  name: median
+  startup_trials: 5
+
+trials:
+  quick: 15
+  logistic: 25
+  catboost: 40
+  lightgbm: 40
+  xgboost: 40
+
+objective:
+  primary: factual_logloss
+  brier_weight: 0.5
+
+# Architectures to tune
+architectures:
+  - s_learner
+  - t_learner
+
+# Models to tune
+models:
+  - logistic
+  - catboost

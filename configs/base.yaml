@@ -1,0 +1,6 @@
+# Base configuration — version identifiers and global defaults
+data_version: "didar_retention_v1"
+feature_version: "2.2.0"
+model_version: "1.1.0"
+policy_version: "1.1.0"
+top_k: 50

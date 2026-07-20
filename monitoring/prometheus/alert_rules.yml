@@ -1,0 +1,38 @@
+groups:
+  - name: retention_model_alerts
+    rules:
+      - alert: ModelNotLoaded
+        expr: model_loaded == 0
+        for: 2m
+        labels: { severity: critical, owner: mlops }
+        annotations:
+          summary: "Champion model bundle is not loaded"
+          description: "model_loaded gauge has been 0 for >2 minutes — scoring disabled"
+
+      - alert: HighRequestErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels: { severity: warning, owner: backend }
+        annotations:
+          summary: ">5% request errors over 5 minutes"
+
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, rate(inference_duration_seconds_bucket[5m])) > 2.0
+        for: 5m
+        labels: { severity: warning, owner: mlops }
+        annotations:
+          summary: "p95 inference latency > 2s"
+
+      - alert: SchemaValidationFailures
+        expr: rate(schema_validation_failures_total[5m]) > 0.01
+        for: 5m
+        labels: { severity: warning, owner: backend }
+        annotations:
+          summary: "Schema validation failures > 1% — check input data quality"
+
+      - alert: LowActiveDaysCoverage
+        expr: active_days_pct < 0.5
+        for: 10m
+        labels: { severity: warning, owner: data }
+        annotations:
+          summary: "Mean active usage days coverage below 50%"

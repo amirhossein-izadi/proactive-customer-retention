@@ -1,0 +1,39 @@
+{
+  "title": "Retention Data — Drift & Quality",
+  "uid": "retention-drift",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["retention", "drift"],
+  "panels": [
+    {
+      "title": "PSI per Feature",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{"expr": "feature_psi", "legendFormat": "{{feature}}"}]
+    },
+    {
+      "title": "Active Days Coverage",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "targets": [{"expr": "avg(active_days_pct)", "legendFormat": "mean coverage"}]
+    },
+    {
+      "title": "Zero-Days Ratio",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "targets": [{"expr": "avg(zero_days_ratio)", "legendFormat": "mean zero days"}]
+    },
+    {
+      "title": "Null / Missing Rate",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"expr": "data_quality_missing_rate", "legendFormat": "{{column}}"}]
+    },
+    {
+      "title": "Schema Validation Failures",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 8},
+      "targets": [{"expr": "rate(schema_validation_failures_total[5m])", "legendFormat": "failures/s"}]
+    }
+  ]
+}

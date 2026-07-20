@@ -1,0 +1,32 @@
+{
+  "dataset": "didar_retention",
+  "split": "development",
+  "n_customers": 3200,
+  "seed_manifest": {
+    "master_seed": 42,
+    "holdout_seed": 191664964,
+    "outer_cv_seed": 1662057958,
+    "inner_cv_seed": 1405681632,
+    "model_seed": 942484272,
+    "bootstrap_seed": 929893138
+  },
+  "columns": [
+    "customer_id",
+    "company_size",
+    "package",
+    "tenure_months",
+    "subscription_type",
+    "monthly_revenue",
+    "support_tickets_30d",
+    "email_engagement",
+    "contacted",
+    "churned"
+  ],
+  "stratum_counts": {
+    "0_0": 1146,
+    "1_0": 1049,
+    "0_1": 503,
+    "1_1": 502
+  },
+  "sha256": "75b23011b84702f036a736b501d622f7b52580971f6c87b76b1aa51d902e9721"
+}

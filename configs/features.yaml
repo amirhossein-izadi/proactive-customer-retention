@@ -1,0 +1,10 @@
+feature_version: "2.0.0"
+include: {static: true, temporal_aggregates: true, raw_lags: false, pca: true, missingness: true}
+usage_windows: [7, 14, 30, 60]
+categories:
+  package:
+    known: ["Basic", "Pro", "Enterprise"]
+    aliases: {"professional": "Pro", "PRO": "Pro", "basic": "Basic", "enterprise": "Enterprise"}
+    unknown_action: "flag_and_continue"
+  subscription_type:
+    known: ["Monthly", "Annual"]

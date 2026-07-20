@@ -1,0 +1,6 @@
+# TabFM — research challenger (non-commercial+ license, not enabled by default)
+enabled: false
+note: >
+  TabFM requires torch, transformers and the tabfm PyTorch hub model.
+  Only enable if the license permits your use case. Not part of the
+  baseline comparison table.

@@ -1,0 +1,22 @@
+# Decision policy — separate from the estimator
+policy_version: "1.0.0"
+top_k: 50
+ranking_metric: robust_uplift  # robust_uplift | uplift | churn_risk_only | revenue_weighted
+uncertainty_penalty: 1.0
+tie_breaker: customer_id_asc
+
+eligibility:
+  min_usage_days: 45
+  min_tenure_months: 1
+  exclude_recently_contacted_days: 30
+  exclude_do_not_contact: true
+
+fallback:
+  enabled: true
+  model: risk_only  # risk_only | rule_based
+  rule: usage_ratio < 0.3 AND subscription_type == Monthly
+
+abstention:
+  max_propensity_clip: 0.02
+  min_common_support: 0.05
+  max_uncertainty_ratio: 0.5  # abstain if SE(uplift) > 0.5 * |uplift|

@@ -1,0 +1,10 @@
+# Champion CatBoost parameters (from Optuna optimisation, tuned for calibration)
+champion:
+  iterations: 500
+  depth: 4
+  learning_rate: 0.022
+  l2_leaf_reg: 25
+  random_strength: 4.2
+  subsample: 0.64
+  verbose: false
+  allow_writing_files: false

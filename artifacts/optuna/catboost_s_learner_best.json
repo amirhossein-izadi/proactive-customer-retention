@@ -1,0 +1,12 @@
+{
+  "iterations": 800,
+  "depth": 4,
+  "learning_rate": 0.011281791500203382,
+  "l2_leaf_reg": 34.786806847688176,
+  "random_strength": 4.163694352249857,
+  "min_data_in_leaf": 80,
+  "best_value": 0.5742916233723596,
+  "architecture": "s_learner",
+  "model": "catboost",
+  "n_trials": 15
+}

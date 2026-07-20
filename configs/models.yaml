@@ -1,0 +1,144 @@
+# Model configuration — Optuna-tuned hyperparameters
+challengers:
+  # ── P0: S-learners ──
+  logistic_s_int:
+    enabled: true
+    params:
+      max_iter: 5000
+      C: 0.0313
+      penalty: l2
+      class_weight: null
+    seed_key: random_state
+    type: si
+
+  logistic_s:
+    enabled: true
+    params:
+      max_iter: 5000
+      C: 0.0313
+      penalty: l2
+      class_weight: null
+    seed_key: random_state
+    type: s
+
+  catboost_s:
+    enabled: true
+    params:
+      iterations: 800
+      depth: 4
+      learning_rate: 0.0113
+      l2_leaf_reg: 34.8
+      random_strength: 4.16
+      min_data_in_leaf: 80
+      loss_function: Logloss
+      eval_metric: Logloss
+      verbose: false
+      allow_writing_files: false
+    seed_key: null
+    type: s
+
+  # ── P1: T-learners ──
+  logistic_t:
+    enabled: true
+    params:
+      max_iter: 5000
+      C: 0.0255
+      penalty: l2
+      class_weight: null
+    seed_key: random_state
+
+  catboost_t:
+    enabled: true
+    params:
+      iterations: 300
+      depth: 3
+      learning_rate: 0.0263
+      l2_leaf_reg: 25.7
+      random_strength: 2.84
+      min_data_in_leaf: 30
+      loss_function: Logloss
+      eval_metric: Logloss
+      verbose: false
+      allow_writing_files: false
+    seed_key: null
+
+  # ── P2: DR-learners ──
+  logistic_dr:
+    enabled: true
+    params:
+      max_iter: 5000
+      C: 0.0255
+      penalty: l2
+      class_weight: null
+      n_folds: 5
+      final_alpha: 0.1
+      final_l1_ratio: 0.5
+    seed_key: random_state
+    type: dr
+
+  catboost_dr:
+    enabled: true
+    params:
+      iterations: 300
+      depth: 3
+      learning_rate: 0.0263
+      l2_leaf_reg: 25.7
+      min_data_in_leaf: 30
+      verbose: false
+      allow_writing_files: false
+      n_folds: 5
+      final_alpha: 0.1
+      final_l1_ratio: 0.5
+    seed_key: null
+    type: dr
+
+  # ── P3: X-learners ──
+  logistic_x:
+    enabled: true
+    params:
+      max_iter: 5000
+      C: 0.0255
+      penalty: l2
+      class_weight: null
+      n_folds: 5
+      effect_alpha: 0.5
+    seed_key: random_state
+    type: x
+
+  catboost_x:
+    enabled: true
+    params:
+      iterations: 300
+      depth: 3
+      learning_rate: 0.0263
+      l2_leaf_reg: 25.7
+      min_data_in_leaf: 30
+      verbose: false
+      allow_writing_files: false
+      n_folds: 5
+      effect_alpha: 0.5
+    seed_key: null
+    type: x
+
+  # ── P4: Boosting challengers (disabled) ──
+  lightgbm_t:
+    enabled: false
+    params:
+      n_estimators: 300
+      max_depth: 3
+      num_leaves: 15
+      min_child_samples: 50
+      reg_lambda: 15
+      verbose: -1
+    seed_key: random_state
+
+  xgboost_t:
+    enabled: false
+    params:
+      n_estimators: 300
+      max_depth: 3
+      min_child_weight: 15
+      reg_lambda: 15
+      subsample: 0.8
+      verbosity: 0
+    seed_key: random_state

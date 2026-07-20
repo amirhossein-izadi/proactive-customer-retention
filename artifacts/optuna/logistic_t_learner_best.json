@@ -1,0 +1,9 @@
+{
+  "penalty": "l2",
+  "C": 0.025540351893843148,
+  "class_weight": null,
+  "best_value": 0.558129053906971,
+  "architecture": "t_learner",
+  "model": "logistic",
+  "n_trials": 15
+}

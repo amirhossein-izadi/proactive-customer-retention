@@ -1,0 +1,10 @@
+groups:
+  - name: retention_recording_rules
+    interval: 5m
+    rules:
+      - record: job:error_rate_5m
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
+      - record: job:mean_uplift_5m
+        expr: avg(estimated_uplift_sum[5m]) / avg(estimated_uplift_count[5m])
+      - record: job:inference_request_rate_5m
+        expr: rate(inference_requests_total[5m])

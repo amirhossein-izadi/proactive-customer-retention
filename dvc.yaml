@@ -1,0 +1,50 @@
+stages:
+  validate:
+    cmd: uv run retention validate
+    deps:
+      - data/raw/customer_data.csv
+      - data/raw/usage_timeseries.csv
+      - src/retention/data/validation.py
+      - src/retention/data/loading.py
+    outs:
+      - artifacts/metrics/data_quality.json
+  split:
+    cmd: uv run retention split
+    deps:
+      - src/retention/data/splitting.py
+      - configs/validation.yaml
+    outs:
+      - data/splits/development_set.csv
+      - data/splits/test_set.csv
+  train:
+    cmd: uv run retention train
+    deps:
+      - src/retention/modeling/
+      - data/splits/development_set.csv
+      - data/splits/test_set.csv
+    outs:
+      - artifacts/oof_predictions/champion_predictions.npz
+    metrics:
+      - reports/model_comparison.csv:
+          cache: false
+  evaluate:
+    cmd: uv run retention evaluate
+    deps:
+      - artifacts/oof_predictions/champion_predictions.npz
+    metrics:
+      - artifacts/metrics/final_summary.json:
+          cache: false
+  rank:
+    cmd: uv run retention rank
+    deps:
+      - artifacts/oof_predictions/champion_predictions.npz
+    outs:
+      - reports/final_ranking.csv
+  bundle:
+    cmd: uv run retention bundle
+    deps:
+      - src/retention/bundle/
+      - data/splits/development_set.csv
+      - configs/model_catboost.yaml
+    outs:
+      - models/champion/

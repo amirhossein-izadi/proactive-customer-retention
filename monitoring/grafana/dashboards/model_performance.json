@@ -1,0 +1,38 @@
+{
+  "title": "Retention Model — Predictions & Performance",
+  "uid": "retention-model",
+  "schemaVersion": 38,
+  "version": 1,
+  "tags": ["retention", "model"],
+  "panels": [
+    {
+      "title": "Estimated Uplift Distribution",
+      "type": "histogram",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [{"expr": "estimated_uplift_bucket", "legendFormat": "{{le}}"}]
+    },
+    {
+      "title": "Mean Uplift",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [{"expr": "avg(estimated_uplift)", "legendFormat": "mean uplift"}]
+    },
+    {
+      "title": "Model Loaded Status",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 0},
+      "targets": [{"expr": "model_loaded"}]
+    },
+    {
+      "title": "Common Support Ratio",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 8},
+      "targets": [{"expr": "inference_common_support_ratio", "legendFormat": "in support"}]
+    },
+    {
+      "title": "Top Features (Global Importance)",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 8}
+    }
+  ]
+}

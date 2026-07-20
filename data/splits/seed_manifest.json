@@ -1,0 +1,8 @@
+{
+  "master_seed": 42,
+  "holdout_seed": 191664964,
+  "outer_cv_seed": 1662057958,
+  "inner_cv_seed": 1405681632,
+  "model_seed": 942484272,
+  "bootstrap_seed": 929893138
+}

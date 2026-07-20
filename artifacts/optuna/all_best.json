@@ -1,0 +1,44 @@
+{
+  "logistic_s_learner": {
+    "penalty": "l2",
+    "C": 0.03132952026183017,
+    "class_weight": null,
+    "best_value": 0.5666051962388375,
+    "architecture": "s_learner",
+    "model": "logistic",
+    "n_trials": 15
+  },
+  "catboost_s_learner": {
+    "iterations": 800,
+    "depth": 4,
+    "learning_rate": 0.011281791500203382,
+    "l2_leaf_reg": 34.786806847688176,
+    "random_strength": 4.163694352249857,
+    "min_data_in_leaf": 80,
+    "best_value": 0.5742916233723596,
+    "architecture": "s_learner",
+    "model": "catboost",
+    "n_trials": 15
+  },
+  "logistic_t_learner": {
+    "penalty": "l2",
+    "C": 0.025540351893843148,
+    "class_weight": null,
+    "best_value": 0.558129053906971,
+    "architecture": "t_learner",
+    "model": "logistic",
+    "n_trials": 15
+  },
+  "catboost_t_learner": {
+    "iterations": 300,
+    "depth": 3,
+    "learning_rate": 0.0263237291646498,
+    "l2_leaf_reg": 25.73921678047333,
+    "random_strength": 2.843418133503681,
+    "min_data_in_leaf": 30,
+    "best_value": 0.5660748412263678,
+    "architecture": "t_learner",
+    "model": "catboost",
+    "n_trials": 15
+  }
+}
