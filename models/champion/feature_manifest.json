@@ -1,0 +1,377 @@
+{
+  "feature_version": "2.2.0",
+  "n_features": 53,
+  "features": [
+    {
+      "name": "log_company_size",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "log_revenue",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "revenue_per_employee",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "tenure_years",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "is_annual",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "is_monthly",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "tickets_per_revenue",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "tickets_per_employee",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "email_engagement",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "support_tickets_30d",
+      "dtype": "float64",
+      "family": "static",
+      "source": "customer attributes",
+      "formula": ""
+    },
+    {
+      "name": "usage_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "usage_median",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "usage_max",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "usage_min",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "usage_total",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_7_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_14_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_30_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "early_30_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "early_7_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "early_14_mean",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "last_day_usage",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "slope_60d",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "slope_30d",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "slope_14d",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_minus_early",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_early_ratio",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pct_decline",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "zero_days",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "missing_days",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "active_days_pct",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "longest_zero_streak",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "days_since_activity",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "recent_zero_days",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "usage_std",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "cv",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "mean_abs_daily_change",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "down_day_proportion",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "max_drawdown",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "trend_residual_var",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "first_half_total",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "second_half_total",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "halves_ratio",
+      "dtype": "float64",
+      "family": "temporal",
+      "source": "60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pca_usage_0",
+      "dtype": "float64",
+      "family": "pca",
+      "source": "PCA over 60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pca_usage_1",
+      "dtype": "float64",
+      "family": "pca",
+      "source": "PCA over 60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pca_usage_2",
+      "dtype": "float64",
+      "family": "pca",
+      "source": "PCA over 60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pca_usage_3",
+      "dtype": "float64",
+      "family": "pca",
+      "source": "PCA over 60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "pca_usage_4",
+      "dtype": "float64",
+      "family": "pca",
+      "source": "PCA over 60-day usage sequence",
+      "formula": ""
+    },
+    {
+      "name": "package_Basic",
+      "dtype": "float64",
+      "family": "categorical",
+      "source": "package one-hot",
+      "formula": ""
+    },
+    {
+      "name": "package_Enterprise",
+      "dtype": "float64",
+      "family": "categorical",
+      "source": "package one-hot",
+      "formula": ""
+    },
+    {
+      "name": "package_Pro",
+      "dtype": "float64",
+      "family": "categorical",
+      "source": "package one-hot",
+      "formula": ""
+    },
+    {
+      "name": "subscription_type_Annual",
+      "dtype": "float64",
+      "family": "categorical",
+      "source": "package one-hot",
+      "formula": ""
+    },
+    {
+      "name": "subscription_type_Monthly",
+      "dtype": "float64",
+      "family": "categorical",
+      "source": "package one-hot",
+      "formula": ""
+    }
+  ]
+}

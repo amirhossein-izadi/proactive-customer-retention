@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "input": [
+    "customer_statics",
+    "usage_60days"
+  ],
+  "output": [
+    "p_churn_no_contact",
+    "p_churn_contact",
+    "estimated_uplift"
+  ]
+}

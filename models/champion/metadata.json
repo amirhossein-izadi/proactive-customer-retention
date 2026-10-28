@@ -1,0 +1,19 @@
+{
+  "model_version": "1.1.0",
+  "feature_version": "2.2.0",
+  "data_version": "didar_retention_v1",
+  "model_family": "CatBoost T-learner",
+  "n_features": 53,
+  "n_dev_samples": 3200,
+  "champion_params": {
+    "iterations": 500,
+    "depth": 4,
+    "learning_rate": 0.022,
+    "l2_leaf_reg": 25,
+    "random_strength": 4.2,
+    "subsample": 0.64,
+    "verbose": false,
+    "allow_writing_files": false
+  },
+  "calibration": "CalibratedClassifierCV, Platt sigmoid, internal 3-fold CV"
+}

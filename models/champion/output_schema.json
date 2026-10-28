@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "ranking_columns": [
+    "rank",
+    "customer_id",
+    "p_churn_no_contact",
+    "p_churn_contact",
+    "estimated_uplift",
+    "uplift_se",
+    "propensity",
+    "ranking_score"
+  ]
+}
