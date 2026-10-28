@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 import numpy as np
 import optuna
-from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.model_selection import StratifiedKFold
+from xgboost import XGBClassifier
 
 from retention.features.builder import build_preprocessor
 from retention.tuning.search_spaces import (
@@ -25,16 +29,12 @@ _SPACE_FNS = {
 
 def _build_model(model_name: str, params: dict):
     if model_name == "logistic":
-        from sklearn.linear_model import LogisticRegression
         return LogisticRegression(**params)
     if model_name == "catboost":
-        from catboost import CatBoostClassifier
         return CatBoostClassifier(**params)
     if model_name == "lightgbm":
-        from lightgbm import LGBMClassifier
         return LGBMClassifier(**params)
     if model_name == "xgboost":
-        from xgboost import XGBClassifier
         return XGBClassifier(**params)
     raise ValueError(f"Unknown model: {model_name}")
 

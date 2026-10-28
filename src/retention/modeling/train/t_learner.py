@@ -6,19 +6,14 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
-from retention.features.builder import build_preprocessor, get_categorical_indices
+from retention.features.builder import build_preprocessor
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
 from retention.modeling.cross_fitting import (
-    _maybe_cat_features,
     dr_policy_value_50,
     factual_metrics,
     repeated_cross_fit,
 )
-from retention.settings.config import get_settings
-
-
-def _capacity() -> int:
-    return get_settings().top_k
+from retention.modeling.train.shared import capacity
 
 
 def train_t_learner(
@@ -44,7 +39,7 @@ def train_t_learner(
     uplift_d = p0_d - p1_d
     se_d = np.sqrt(np.var(oof["p0"] - oof["p1"], axis=1, ddof=1))
     fm_d = factual_metrics(Yd, p0_d, p1_d, Td)
-    dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=_capacity())
+    dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=capacity())
 
     prep = build_preprocessor(include_pca=True, scale=True)
     Xd_all = prep.fit_transform(Xd)
@@ -63,9 +58,6 @@ def train_t_learner(
             else:
                 kws["random_seed"] = s
         kw1[seed_key if seed_key else "random_seed"] = s + 1
-        cat_idx = _maybe_cat_features(model_cls, prep)
-        if cat_idx:
-            kw0["cat_features"] = kw1["cat_features"] = cat_idx
 
         m0 = model_cls(**kw0).fit(Xd_all[Td == 0], Yd[Td == 0])
         m1 = model_cls(**kw1).fit(Xd_all[Td == 1], Yd[Td == 1])
@@ -80,7 +72,7 @@ def train_t_learner(
     uplift_t = p0_t - p1_t
     se_t = np.sqrt(np.var(tp0 - tp1, axis=1, ddof=1))
     fm_t = factual_metrics(Yt, p0_t, p1_t, Tt)
-    cap = _capacity()
+    cap = capacity()
     dr50_t = dr_policy_value_50(uplift_t, p0_t, p1_t, e_t, Tt, Yt, k=cap)
     u50_t = float(np.sort(uplift_t)[::-1][:cap].mean())
 

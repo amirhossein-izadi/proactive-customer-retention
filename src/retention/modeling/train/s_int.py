@@ -1,7 +1,7 @@
-"""S-learner with explicit treatment-interaction features.
+"""S-learner with data-driven treatment-interaction features.
 
-Adds T × feature interactions before fitting — the #1 recommended
-model architecture for this dataset size (4000 customers).
+Interactions are selected dynamically at train time by screening
+each feature for treatment-effect modification (via screen_interactions).
 """
 
 from __future__ import annotations
@@ -18,41 +18,23 @@ from retention.modeling.cross_fitting import (
     repeated_cross_fit_slearner,
 )
 from retention.modeling.s_learner import SLearner
-from retention.settings.config import get_settings
-
-# Features most likely to modify treatment effect (from expert domain analysis)
-_INTERACTION_FEATURES = [
-    "recent_7_mean",
-    "recent_14_mean",
-    "zero_days",
-    "longest_zero_streak",
-    "slope_60d",
-    "usage_mean",
-    "pct_decline",
-    "active_days_pct",
-    "usage_std",
-    "days_since_activity",
-]
-
-
-def _capacity() -> int:
-    return get_settings().top_k
+from retention.modeling.screening import screen_interactions
+from retention.modeling.train.shared import capacity
 
 
 def _add_treatment_interactions(
-    X: np.ndarray, T: np.ndarray, feature_names: list[str]
-) -> tuple[np.ndarray, list[str]]:
-    """Append T × feature interaction columns for the selected effect modifiers."""
+    X: np.ndarray, T: np.ndarray, feature_names: list[str], target_features: set[str]
+) -> np.ndarray:
+    """Append T × feature interaction columns. target_features are short names matched by suffix."""
     T_col = T.reshape(-1, 1)
-    short_names = [n.split("__")[-1] for n in feature_names]
     new_cols = []
-    for i, sn in enumerate(short_names):
-        if sn in _INTERACTION_FEATURES:
+    for i, fn in enumerate(feature_names):
+        short = fn.split("__")[-1]
+        if short in target_features:
             new_cols.append(T_col * X[:, i].reshape(-1, 1))
     if not new_cols:
-        return X, feature_names
-    X_aug = np.column_stack([X] + new_cols)
-    return X_aug, feature_names
+        return X
+    return np.column_stack([X] + new_cols)
 
 
 def train_s_learner_int(
@@ -64,19 +46,24 @@ def train_s_learner_int(
     Xt, Tt: np.ndarray, Yt: np.ndarray,
     SEED: dict, cids_t: np.ndarray, rev_t: np.ndarray,
 ) -> tuple[ChallengerMetrics, ChallengerPreds]:
-    """S-learner with explicit treatment-interaction features."""
+    """S-learner with data-driven treatment interactions (screened at train time)."""
     prep = build_preprocessor(include_pca=True, scale=True)
     Xd_base = prep.fit_transform(Xd)
     Xt_base = prep.transform(Xt)
     ct = prep.named_steps["columns"]
     base_names = list(ct.get_feature_names_out())
 
-    # Augment with T × feature interactions
-    Xd_aug, _ = _add_treatment_interactions(Xd_base, Td, base_names)
-    Xt_aug, _ = _add_treatment_interactions(Xt_base, Tt, base_names)
+    # Screen for top effect modifiers on preprocessed (numeric) data
+    Xd_screen = pd.DataFrame(Xd_base, columns=base_names)
+    screen = screen_interactions(Xd_screen, Td, Yd, top_k=5)
+    top_features = set(screen["feature"].tolist()) if len(screen) else set()
+    print(f"    [interactions] top modifiers: {top_features}")
+
+    Xd_aug = _add_treatment_interactions(Xd_base, Td, base_names, top_features)
+    Xt_aug = _add_treatment_interactions(Xt_base, Tt, base_names, top_features)
 
     n = len(Xd)
-    cap = _capacity()
+    cap = capacity()
 
     # Cross-fitted OOF via S-learner
     oof = repeated_cross_fit_slearner(Xd, Td, Yd, model_cls, params, seed_key, n_repeats=3)

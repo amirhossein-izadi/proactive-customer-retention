@@ -14,20 +14,8 @@ from sklearn.model_selection import StratifiedKFold
 
 from retention.evaluation.predictive import compute_metrics as factual_metrics
 from retention.evaluation.policy_value import dr_policy_value
-from retention.features.builder import build_preprocessor, get_categorical_indices
+from retention.features.builder import build_preprocessor
 from retention.modeling.s_learner import SLearner
-
-
-def _maybe_cat_features(model_cls, prep) -> list[int]:
-    """Return cat_features indices if model_cls is CatBoost, else empty list."""
-    try:
-        from catboost import CatBoostClassifier as _CB
-
-        if issubclass(model_cls, _CB):
-            return get_categorical_indices(prep)
-    except Exception:
-        pass
-    return []
 
 
 def repeated_cross_fit(
@@ -69,9 +57,6 @@ def repeated_cross_fit(
                 return kw
 
             kw0, kw1 = _mk(params, 0), _mk(params, 1)
-            cat_idx = _maybe_cat_features(model_cls, prep)
-            if cat_idx:
-                kw0["cat_features"] = kw1["cat_features"] = cat_idx
 
             m0 = model_cls(**kw0).fit(X_tr[T_tr == 0], Y_tr[T_tr == 0])
             m1 = model_cls(**kw1).fit(X_tr[T_tr == 1], Y_tr[T_tr == 1])
@@ -120,9 +105,6 @@ def repeated_cross_fit_slearner(
                 return kw
 
             kw_sl = _mk(params, 0)
-            cat_idx = _maybe_cat_features(model_cls, prep)
-            if cat_idx:
-                kw_sl["cat_features"] = cat_idx
 
             sl = SLearner(model_cls(**kw_sl))
             sl.fit(pd.DataFrame(X_tr), T_tr, Y_tr)

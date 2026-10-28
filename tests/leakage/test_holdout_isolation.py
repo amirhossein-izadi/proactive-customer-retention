@@ -32,15 +32,21 @@ def test_cv_folds_cover_dev_only():
 
 def test_oof_predictions_not_trained():
     """Item 126: Verify OOF predictions come from models that excluded that customer."""
-    from retention.modeling.cross_fitting import repeated_cross_fit
+    import pytest
     from retention.data.loading import load_all
+
+    try:
+        customers, usage = load_all()
+    except FileNotFoundError:
+        pytest.skip("raw data not available (DVC not pulled)")
+
+    from retention.modeling.cross_fitting import repeated_cross_fit
     from retention.features.builder import _pivot_usage
     from retention.data.splitting import generate_seed_manifest
     import pandas as pd, numpy as np
     from catboost import CatBoostClassifier
 
     dev = pd.read_csv(BASE / "data" / "splits" / "development_set.csv")
-    customers, usage = load_all()
     c = customers[customers["customer_id"].isin(dev["customer_id"])]
     u = usage[usage["customer_id"].isin(dev["customer_id"])]
     w = _pivot_usage(u)

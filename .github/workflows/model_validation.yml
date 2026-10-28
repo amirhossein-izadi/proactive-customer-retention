@@ -1,0 +1,34 @@
+name: Model Validation
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Train models
+        run: uv run retention train --optuna
+
+      - name: Build bundle
+        run: uv run retention bundle
+
+      - name: Run golden tests
+        run: uv run pytest tests/golden/ -v --tb=short
+
+      - name: Bundle compatibility check
+        run: uv run python scripts/validate_bundle.py

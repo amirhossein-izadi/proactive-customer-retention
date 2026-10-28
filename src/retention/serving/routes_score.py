@@ -12,10 +12,12 @@ from retention.data.joining import pivot_usage
 from retention.monitoring.audit import audit_event
 from retention.monitoring.metrics import (
     ACTIVE_DAYS_PCT,
+    INFERENCE_COMMON_SUPPORT,
     INFERENCE_LATENCY,
     INFERENCE_REQUESTS,
     NEGATIVE_UPLIFT_RATE,
     UPLIFT_SCORES,
+    ZERO_DAYS_RATIO,
 )
 from retention.serving.dependencies import get_bundle, get_request_id
 from retention.settings.config import Settings, get_settings
@@ -47,7 +49,7 @@ async def score_customer(
     # Build wide DataFrame from the usage points
     usage_df = pd.DataFrame(
         {
-            "customer_id": [inp.customer_id],
+            "customer_id": [inp.customer_id] * len(inp.usage),
             "day": [p.day for p in inp.usage],
             "daily_usage": [p.daily_usage for p in inp.usage],
         }
@@ -65,6 +67,9 @@ async def score_customer(
     if uplift < 0:
         NEGATIVE_UPLIFT_RATE.inc()
     ACTIVE_DAYS_PCT.set(len(inp.usage) / 60.0)
+    zero_frac = sum(1 for p in inp.usage if p.daily_usage == 0) / max(len(inp.usage), 1)
+    ZERO_DAYS_RATIO.set(zero_frac)
+    INFERENCE_COMMON_SUPPORT.set(1.0 if bool(scores["in_common_support"][0]) else 0.0)
     audit_event(
         "score",
         customer_id=inp.customer_id,

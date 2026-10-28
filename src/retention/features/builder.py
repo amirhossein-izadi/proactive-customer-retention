@@ -261,7 +261,8 @@ def get_categorical_indices(preprocessor: SkPipeline) -> list[int]:
     """
     ct = preprocessor.named_steps["columns"]
     names = ct.get_feature_names_out()
-    cat_starts = ("package_", "subscription_type_")
+    # ColumnTransformer prefixes feature names with step name: "cat__package_Basic"
+    cat_starts = ("cat__package_", "cat__subscription_type_")
     return [i for i, n in enumerate(names) if any(n.startswith(p) for p in cat_starts)]
 
 

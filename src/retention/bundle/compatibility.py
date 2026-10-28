@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
+import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from retention.bundle.model_bundle import REQUIRED as SERVING_REQUIRED
 from retention.bundle.model_bundle import RetentionPolicyBundle
 
-REQUIRED_ARTIFACTS = [
-    "preprocessor.pkl",
-    "m0.pkl",
-    "m1.pkl",
-    "calibrator_0.pkl",
-    "calibrator_1.pkl",
-    "propensity.pkl",
-    "metadata.json",
-]
+# Analysis artifacts produced alongside the serving bundle (used by SHAP,
+# reporting and golden tests — not required to serve predictions).
+ANALYSIS_ARTIFACTS = ["m0.pkl", "m1.pkl"]
+
+REQUIRED_ARTIFACTS = list(SERVING_REQUIRED) + ANALYSIS_ARTIFACTS
 
 
 def check_bundle(dir_path: str | Path) -> dict:
@@ -42,8 +40,6 @@ def check_bundle(dir_path: str | Path) -> dict:
             # Verify it loads
             with open(p, "rb") as f:
                 try:
-                    import pickle
-
                     pickle.load(f)
                     result["checks"][name] = "loadable"
                 except Exception as e:

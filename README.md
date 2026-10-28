@@ -1,91 +1,104 @@
 # Didar Retention — Causal Uplift Model for Churn Reduction
 
-**Status**: Structured ML experiment with production-oriented scaffolding.
-**Champion architecture**: CatBoost T-learner (two separate outcome models).
+A causal uplift modeling project on [Didar](https://didar.me) CRM data for proactive churn prevention. Given customer attributes and 60 days of product-usage history per customer, the system estimates each customer's churn reduction from being contacted and prioritizes exactly the top 50 customers for a retention campaign — ranking by treatment effect, not by raw churn risk.
 
-A full pipeline trains multiple challenger models (logistic, CatBoost, LightGBM,
-XGBoost, DR-learner — each as T-learner or S-learner), selects the champion by
-dev OOF DR policy value, and generates a deterministic top-50 customer ranking.
+> **Project links:** [Didar](https://didar.me) · [Technical Report](Didar-Customer-Retention-Technical-Report.pdf) · [Full Report](report.md) · [Model Card](docs/model_card.md) · [Methodology](docs/methodology_report.md)
+
+**Champion**: logistic_t (T-learner with L2 logistic regression, Optuna-tuned)
+**Test AUC**: 0.8036 | **Test DR@50**: 0.5692 | **Test Brier**: 0.1626
 
 ## Quick Start
 
 ```bash
-uv sync --frozen --all-groups          # no `uv sync` needed if already synced
-uv pip install --no-deps -e .          # install the `retention` CLI
-retention validate                     # pandera schema validation + quality report
-retention split                        # stratified dev/test split (20%)
-retention train                        # all challengers → champion (takes ~10 min)
-retention evaluate                     # champion metric summary
-retention rank                         # save reports/final_ranking.csv
-retention bundle                       # model artifacts to models/champion/
-retention ablate                       # feature ablation table
+# Install dependencies
+uv sync
+
+# Full pipeline (tune → train → bundle → rank → evaluate)
+uv run retention run
+
+# Or step by step:
+uv run retention train --optuna       # 9 models + blend
+uv run retention bundle                # champion bundle with SHAP
+uv run retention rank                  # top-50 ranking
+uv run retention evaluate              # full evaluation summary
+
+# Docker stack
+docker compose build api
+docker compose up -d
+curl http://localhost:8001/health
 ```
 
-## Key Architectural Decisions
+## Results
 
-- **Scaled preprocessor**: `build_preprocessor` in `features/builder.py` wraps
-  the ColumnTransformer with a `StandardScaler` — necessary for logistic convergence
-  and harmless for tree models.
-- **Package one-hot encoding**: `package` (Basic/Pro/Enterprise) is now passed
-  to all models. Previously it was silently dropped.
-- **Chronological temporals**: usage columns are always ordered by integer day,
-  never by lexicographic string sort, so “recent” features are correct.
-- **Missing ≠ zero**: `missing_days` and `zero_days` are separate features.
-- **Champion selected on dev**: test set is evaluated only once for the final
-  champion — no test-set leakage.
-- **S-learner OOF**: both T-learner and S-learner produce real out-of-fold
-  predictions; dev metrics are not placeholders.
+| Policy | DR@50 | Meaning |
+|--------|-------|---------|
+| **logistic_t (champion)** | **+0.569** | Contacting top 50 reduces churn by ~57pp |
+| Random contact | +0.007 | Near zero |
+| Risk-based (top churn) | -0.110 | **Negative** — historical contact was harmful |
+| Historical policy | -0.001 | No better than random |
+
+See `report.md` for full model comparison (9 models, 102 tests passing).
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `retention validate` | Pandera schema validation |
+| `retention split` | Stratified 80/20 dev/test split |
+| `retention tune --top 3` | Optuna hyperparameter search |
+| `retention train --optuna` | Train 9 models, auto-merge Optuna params |
+| `retention evaluate` | Full evaluation summary |
+| `retention rank` | Generate top-50 ranking |
+| `retention bundle` | Build champion bundle |
+| `retention ablate` | Feature ablation study |
+| `retention run` | Full pipeline: tune → train → bundle → rank → evaluate |
+
+## Architecture
+
+9 models across 4 causal architectures (S/T/DR/X learners), each with logistic and CatBoost.
+Champion selection: Dev OOF DR@50 with Brier < 0.20 calibration threshold.
+All predictions cross-fitted (5-fold x 3-repeat). Preprocessing fitted inside folds.
+
+## Key Features
+
+- **53 features**: 10 static + 33 temporal + 5 PCA + 5 OHE
+- **Optuna tuning**: S/T learner params + per-run CATE tuning (DR/X learners)
+- **Calibration**: CalibratedClassifierCV with Platt scaling per treatment arm
+- **Bundle**: Preprocessor + models + calibrators + propensity + SHAP explanations
+- **API**: FastAPI with 5 endpoints, 14 error codes, Prometheus metrics
+- **Docker**: Non-root user, uv-based, 4 services (API + MLflow + Prometheus + Grafana)
+- **MLflow**: 154 runs logged (SQLite), full metrics + artifacts per model
+- **DVC**: 6 pipeline stages, SHA256-tracked data
+- **Tests**: 102 passing (unit, integration, leakage, contract, robustness, property, golden)
 
 ## Causal Assumptions
 
-1. **Consistency**: `contacted=1` matches the intervention. Satisfied by data.
-2. **Positivity**: propensity clipping `[0.02, 0.98]` — ~1.5% of customers outside.
-3. **Ignorability**: **not guaranteed** — account manager targeting confounds
-   treatment assignment. The uplift estimate is observational.
+1. **Consistency**: `contacted=1` matches the intervention.
+2. **Positivity**: Propensity clipping [0.02, 0.98] — 100% of dev customers in common support.
+3. **Ignorability**: **Not guaranteed** — historical contact was confounded by indication.
 
-## Structure
+## Project Structure
 
 ```
 src/retention/
-├── cli.py                       # 7 pipeline commands
-├── contracts/                   # Pydantic schemas + error codes + inference policy
-├── data/                        # loading, validation, splitting, joining, snapshots
-├── features/                    # builder (canonical preprocessor), temporal, missingness, registry
-├── modeling/                    # learners (S/T/DR), cross_fitting, calibration, factories
-│   └── train/                   # modular training runner (base, config, runner, s/t learner)
-├── evaluation/                  # predictive metrics, uplift curves, baselines, bootstrap
-├── policy/                      # eligibility, support, tie-breaking, ranking
-├── bundle/                      # serialization, metadata, compatibility check
-├── serving/                     # FastAPI (health, score, rank, model-info)
-├── monitoring/                  # prometheus metrics, drift, data quality, audit logging
-└── utils/                       # paths, hashing, serialization, timing
+├── cli.py              # 9 CLI commands
+├── run.py              # Full pipeline orchestrator
+├── contracts/          # Pydantic schemas, error codes, inference policy
+├── data/               # Loading, validation (Pandera), splitting, leakage register
+├── features/           # Builder (53 features), temporal, missingness, registry
+├── modeling/           # S/T/DR/X learners, cross-fitting, calibration, propensity
+│   └── train/          # Runner, config, shared utilities, per-learner modules
+├── tuning/             # Optuna search spaces, objectives, smart runner
+├── evaluation/         # AUUC/Qini, policy value, bootstrap, calibration, subgroups
+├── policy/             # Eligibility, ranking, tie-breaking, fallback
+├── bundle/             # RetentionPolicyBundle, serializer, compatibility
+├── serving/            # FastAPI (5 endpoints, error codes, metrics)
+├── monitoring/         # Prometheus metrics, drift, audit logging
+├── explainability/     # SHAP global/local, reason codes, uplift explanations
+├── settings/           # YAML config loader
+└── utils/              # Paths, seeds, serialization, hashing
 ```
-
-## What Is Known To Work (Verified by Import / Smoke Tests)
-
-- `retention validate` — pandera checks on 4,000 customers, 240,000 usage rows
-- `retention split` — stratified joint (T,Y) 80/20 split
-- `retention evaluate` (with synthetic npz) — metric summary including DR policy value
-- `retention rank` (with synthetic npz) — deterministic top-50 with support filter
-- **S/T/DR learners** — unit-tested against synthetic beneficial treatment
-- **Temporal feature ordering** — permutation-invariance tested
-- **Missingness** — NaN not conflated with zero, tested
-- **FastAPI /health, /ready, /v1/score, /v1/rank** — import-smoke tested
-- **Uplift sign** — positive for synthetic beneficial treatment (both S and T learner)
-- **Holdout isolation** — zero overlap between dev and test customer ids
-- **Bundle roundtrip** — pickle → unpickle preserves predictions
-
-## Known Gaps
-
-- **Full training run** not executed end-to-end after the refactor — the previous
-  run crashed on the S-learner branch. A full `retention train` is needed to
-  produce actual `champion_predictions.npz` and populate `reports/` + `artifacts/`.
-- **SHAP, MLflow pyfunc, 500-sample bootstrap, CausalForest** — code structures exist
-  but are not yet wired into the execution path (see `docs/EXPERT_SCORECARD.md` warning).
-- **Docker serving** requires the bundle to exist first (`retention bundle`).
-- **Monitoring dashboards** (Grafana JSON) are shipped as static configuration,
-  not verified with live data.
 
 ## License
 
-See `LICENSE` (delivered as part of the challenge submission).
+See `LICENSE`.

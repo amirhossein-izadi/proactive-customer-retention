@@ -13,6 +13,10 @@ from functools import lru_cache
 import numpy as np
 import pandas as pd
 
+from retention.contracts.raw_data import usage_columns
+from retention.data.joining import pivot_usage
+from retention.data.loading import load_all
+from retention.features.missingness import missingness_features
 from retention.policy.eligibility import eligible_customers
 from retention.policy.evaluate import dr_policy_value
 from retention.policy.fallback import FallbackPolicy
@@ -69,7 +73,6 @@ def generate_final_ranking(k: int | None = None) -> pd.DataFrame:
     se = np.asarray(data.get("se_t", np.zeros_like(uplift)))
     cids = np.asarray(data["cids_t"], dtype=int)
     rev = np.asarray(data.get("rev_t", np.ones(len(cids))))
-    tenure = np.asarray(data.get("tenure_months", np.ones(len(cids)) * 12))
 
     # Load T/Y from test CSV (not in npz) for DR policy value
     test_df = pd.read_csv(SPLITS / "test_set.csv")
@@ -81,8 +84,21 @@ def generate_final_ranking(k: int | None = None) -> pd.DataFrame:
     )
     T_arr = np.array([test_map[cid][0] for cid in cids])
     Y_arr = np.array([test_map[cid][1] for cid in cids])
-    # Build a minimal DataFrame for eligibility/filtering
-    feat_df = pd.DataFrame({"tenure_months": tenure, "active_days_pct": np.ones(len(cids)) * 0.8})
+    # Real eligibility inputs: tenure from customers, active-days from usage history
+    customers, usage = load_all()
+    cust_map = customers.set_index("customer_id")
+    tenure_real = cust_map.reindex(cids)["tenure_months"].fillna(12).to_numpy(dtype=float)
+    u = usage[usage["customer_id"].isin(cids)]
+    w = pivot_usage(u)
+    expected_cols = usage_columns()
+    for c in expected_cols:
+        if c not in w.columns:
+            w[c] = np.nan
+    w = w.set_index("customer_id").reindex(cids)
+    arr = w[expected_cols].to_numpy(dtype=float)
+    miss = missingness_features(arr, expected_days=len(expected_cols))
+    active_real = 1.0 - (miss["missing_days"] + miss["zero_days"]) / len(expected_cols)
+    feat_df = pd.DataFrame({"tenure_months": tenure_real, "active_days_pct": active_real})
     n = len(cids)
 
     # 1. Propensity common-support

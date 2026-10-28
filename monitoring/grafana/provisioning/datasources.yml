@@ -5,7 +5,3 @@ datasources:
     access: proxy
     url: http://prometheus:9090
     isDefault: true
-  - name: MLflow
-    type: grafana-mlflow-datasource
-    access: proxy
-    url: http://mlflow:5000

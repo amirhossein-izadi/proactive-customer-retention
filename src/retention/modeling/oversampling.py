@@ -12,6 +12,14 @@ from sklearn.model_selection import StratifiedKFold
 
 from retention.features.builder import build_preprocessor
 
+try:
+    from imblearn.over_sampling import SMOTE
+
+    _HAS_IMBLEARN = True
+except ImportError:  # optional dependency for imbalance experiments
+    SMOTE = None  # type: ignore[assignment]
+    _HAS_IMBLEARN = False
+
 
 def oversampling_curve(
     X_raw,
@@ -58,15 +66,10 @@ def oversampling_curve(
             Y_tr, Y_va = Y[tr], Y[va]
 
             if ratio < 1.0:
-                try:
-                    from imblearn.over_sampling import SMOTE
-
-                    smote = SMOTE(
-                        sampling_strategy=ratio, random_state=seed + tr[0]
-                    )
-                    X_tr, Y_tr = smote.fit_resample(X_tr, Y_tr)
-                except ImportError:
-                    pass
+                if not _HAS_IMBLEARN:
+                    continue  # skip resampling configs when imbalanced-learn is absent
+                smote = SMOTE(sampling_strategy=ratio, random_state=seed + tr[0])
+                X_tr, Y_tr = smote.fit_resample(X_tr, Y_tr)
 
             model = LogisticRegression(max_iter=2000, C=1.0, random_state=seed)
             model.fit(X_tr, Y_tr)

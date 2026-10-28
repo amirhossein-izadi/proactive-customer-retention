@@ -26,6 +26,13 @@ SCHEMA_VALIDATION_FAILURES = Counter(
 )
 FEATURE_PSI = Gauge("feature_psi", "Population Stability Index per feature", ["feature"])
 ACTIVE_DAYS_PCT = Gauge("active_days_pct", "Active days coverage ratio")
+ZERO_DAYS_RATIO = Gauge("zero_days_ratio", "Zero-usage day ratio in scoring request")
+INFERENCE_COMMON_SUPPORT = Gauge(
+    "inference_common_support_ratio", "Fraction of last scored batch inside propensity support"
+)
+DATA_QUALITY_MISSING_RATE = Gauge(
+    "data_quality_missing_rate", "Missing-value rate per column", ["column"]
+)
 NEGATIVE_UPLIFT_RATE = Counter(
     "inference_negative_uplift_total", "Inferences where estimated uplift < 0"
 )

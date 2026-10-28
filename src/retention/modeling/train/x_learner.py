@@ -13,30 +13,8 @@ from sklearn.model_selection import StratifiedKFold
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
 from retention.evaluation.policy_value import dr_policy_value
 from retention.evaluation.predictive import compute_metrics as factual_metrics
-from retention.features.builder import build_preprocessor, get_categorical_indices
-from retention.settings.config import get_settings
-
-_META_KEYS = {"n_folds", "effect_alpha"}
-
-
-def _capacity() -> int:
-    return get_settings().top_k
-
-
-def _model_kw(model_cls, params: dict, prep, seed_key: str | None, seed_value: int) -> dict:
-    kw = {k: v for k, v in params.items() if k not in _META_KEYS}
-    if seed_key:
-        kw[seed_key] = seed_value
-    else:
-        kw["random_seed"] = seed_value
-    try:
-        from catboost import CatBoostClassifier as _CBC
-
-        if issubclass(model_cls, _CBC):
-            kw["cat_features"] = get_categorical_indices(prep)
-    except Exception:
-        pass
-    return kw
+from retention.features.builder import build_preprocessor
+from retention.modeling.train.shared import capacity, model_kw, tune_ridge
 
 
 def train_x_learner(
@@ -62,7 +40,7 @@ def train_x_learner(
     Xd_all = prep.fit_transform(Xd)
     Xt_all = prep.transform(Xt)
     n = len(Xd)
-    cap = _capacity()
+    cap = capacity()
     n_folds = params.get("n_folds", 5)
     effect_alpha = params.get("effect_alpha", 1.0)
 
@@ -83,10 +61,10 @@ def train_x_learner(
         T_tr, T_va = Td[tr], Td[va]
         Y_tr, Y_va = Yd[tr], Yd[va]
 
-        m0 = model_cls(**_model_kw(model_cls, params, prep, seed_key, s)).fit(
+        m0 = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
             X_tr[T_tr == 0], Y_tr[T_tr == 0]
         )
-        m1 = model_cls(**_model_kw(model_cls, params, prep, seed_key, s + 1)).fit(
+        m1 = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
             X_tr[T_tr == 1], Y_tr[T_tr == 1]
         )
         e = LogisticRegression(max_iter=1000, random_state=s).fit(X_tr, T_tr)
@@ -113,14 +91,16 @@ def train_x_learner(
     X0_all = np.concatenate(X0_buf)
     X1_all = np.concatenate(X1_buf)
 
-    tau0_model = Ridge(alpha=effect_alpha).fit(X0_all, D0_all)
-    tau1_model = Ridge(alpha=effect_alpha).fit(X1_all, D1_all)
+    # Tune Ridge on pooled pseudo-effects, apply same alpha to both arms
+    best = tune_ridge(np.vstack([X0_all, X1_all]), np.concatenate([D0_all, D1_all]), seed=s)
+    tau0_model = Ridge(alpha=best["alpha"]).fit(X0_all, D0_all)
+    tau1_model = Ridge(alpha=best["alpha"]).fit(X1_all, D1_all)
 
     # ── Full-data nuisance models for test predictions ──
-    m0_full = model_cls(**_model_kw(model_cls, params, prep, seed_key, s)).fit(
+    m0_full = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
         Xd_all[Td == 0], Yd[Td == 0]
     )
-    m1_full = model_cls(**_model_kw(model_cls, params, prep, seed_key, s + 1)).fit(
+    m1_full = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
         Xd_all[Td == 1], Yd[Td == 1]
     )
     e_full = LogisticRegression(max_iter=1000, random_state=s).fit(Xd_all, Td)

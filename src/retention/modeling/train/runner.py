@@ -17,6 +17,8 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from tqdm import tqdm
 
+from retention.utils.paths import ARTIFACTS, BASE, CHAMPION_DIR, OOF_DIR, REPORTS
+
 mlflow.set_tracking_uri(f"sqlite:///{BASE / 'mlflow.db'}")
 
 from retention.contracts.prediction import ChallengerPreds
@@ -38,7 +40,6 @@ from retention.modeling.train.s_learner import train_s_learner
 from retention.modeling.train.t_learner import train_t_learner
 from retention.modeling.train.x_learner import train_x_learner
 from retention.settings.config import get_settings
-from retention.utils.paths import ARTIFACTS, BASE, CHAMPION_DIR, OOF_DIR, REPORTS
 from retention.utils.serialization import save_json, save_pickle
 
 SEED = generate_seeds(42)
@@ -180,6 +181,12 @@ def train_experiment(use_optuna: bool = False) -> list[dict]:
                 dr50_b = dr50_fn(p0_b - p1_b, p0_b, p1_b, e_b, Tt, Yt, k=50)
                 tqdm.write(f"\n--- {blend_name} (a0={bw['alpha0']:.2f}, a1={bw['alpha1']:.2f}) ---")
                 tqdm.write(f"  Test AUC={fm_b['factual_auc']:.4f}  Brier={fm_b['factual_brier']:.4f}  DR50={dr50_b:.4f}")
+                # Append blend to comparison CSV
+                blend_row = {"model": blend_name, "test_auc": round(fm_b['factual_auc'], 4),
+                             "test_brier": round(fm_b['factual_brier'], 4), "test_dr50": round(dr50_b, 4)}
+                all_rows.append(blend_row)
+                pd.DataFrame(all_rows).to_csv(comparison_path, index=False)
+                save_json(all_rows, ARTIFACTS / "metrics" / "predictive_metrics.json")
             except Exception as exc:
                 tqdm.write(f"  Blend skipped: {exc}")
 

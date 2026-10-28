@@ -9,14 +9,17 @@ Usage:
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 import numpy as np
 import optuna
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.model_selection import StratifiedKFold
+from xgboost import XGBClassifier
 
 from retention.data.joining import feature_frame, join_customers_usage
 from retention.data.loading import load_all
@@ -44,16 +47,12 @@ _ALL_ARCHITECTURES = ["s_learner", "t_learner"]
 
 def _build_model(model_name: str, params: dict):
     if model_name == "logistic":
-        from sklearn.linear_model import LogisticRegression
         return LogisticRegression(**params)
     if model_name == "catboost":
-        from catboost import CatBoostClassifier
         return CatBoostClassifier(**params)
     if model_name == "lightgbm":
-        from lightgbm import LGBMClassifier
         return LGBMClassifier(**params)
     if model_name == "xgboost":
-        from xgboost import XGBClassifier
         return XGBClassifier(**params)
     raise ValueError(f"Unknown: {model_name}")
 

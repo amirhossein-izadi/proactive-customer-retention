@@ -1,4 +1,11 @@
-"""RetentionPolicyBundle — preprocessor + calibrated models + propensity + policy."""
+"""RetentionPolicyBundle — preprocessor + calibrated serving models + propensity.
+
+Serving pipeline:
+  raw features → preprocessor → CalibratedClassifierCV → calibrated probabilities
+
+CalibratedClassifierCV (sklearn) wraps a CatBoost model with Platt scaling
+(sigmoid) via internal 3-fold CV, ensuring proper calibration on held-out data.
+"""
 
 from __future__ import annotations
 
@@ -23,6 +30,8 @@ REQUIRED = [
 
 
 class RetentionPolicyBundle:
+    """Production bundle: preprocessor → calibrated models → propensity → ranking."""
+
     def __init__(self):
         self.preprocessor = None
         self.cal0 = None
@@ -60,9 +69,8 @@ class RetentionPolicyBundle:
         }
 
     def rank(self, X_raw: pd.DataFrame, k: int = 50) -> pd.DataFrame:
-        """Return top-k ranking DataFrame for a batch of customers."""
         scores = self.score(X_raw)
-        cids = np.arange(len(X_raw)) + 1  # fallback if no ID column
+        cids = np.arange(len(X_raw)) + 1
         if "customer_id" in X_raw.columns:
             cids = X_raw["customer_id"].values
         uplift = scores["estimated_uplift"]

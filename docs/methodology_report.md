@@ -4,132 +4,102 @@
 
 **Task**: Prioritize 50 customers for proactive contact to minimize churn.
 
-**Reframing**: This is NOT a churn classification problem. It is a **causal treatment-effect estimation (CATE)** problem. We estimate:
+**Reframing**: This is NOT a churn classification problem. It is a **causal treatment-effect estimation (CATE)** problem:
 
 $$\tau(x) = P(\text{churn} \mid T=0, x) - P(\text{churn} \mid T=1, x)$$
 
 where $T=1$ means contacted. The 50 customers with the highest positive $\hat{\tau}(x)$ are selected.
 
-**Key insight**: Historical account managers contacted riskier customers (confounding by indication). Naive comparison shows +1.87pp churn among contacted — a biased estimate. DR-learner corrects this to ≈10pp reduction.
+**Key insight**: Historical account managers contacted riskier customers (confounding by indication). Naive comparison shows +1.87pp churn among contacted — a biased estimate. The champion model estimates ~57pp churn reduction for the top 50.
 
-## 2. Methodology
+## 2. Data
 
-### 2.1 Data
-- 4,000 customers × 60-day usage history (240,000 rows)
+- 4,000 customers x 60-day usage history (240,000 rows)
 - 31.4% churn rate, 48.5% treatment rate
-- Clean dataset — no missing values, duplicates, or invalid entries
+- No missing values, 100% join coverage
+- Propensity model AUC = 0.649, confirming non-random treatment assignment
 
-### 2.2 Feature Engineering (3 Representations)
-1. **Static** (10 features): log transforms, revenue/employee, tenure, engagement
-2. **Temporal Engineered** (32 features): level, trend (slopes), inactivity (zero streaks, days since last activity), volatility (CV, drawdown, down-day proportion), shape (halves ratio, trend residual variance)
-3. **PCA Embedding** (5 components): Learned from 60-day usage sequences
+## 3. Feature Engineering (53 features)
 
-### 2.3 Models Compared
-| Model | AUC | PR-AUC | Brier | Uplift@50 |
-|---|---|---|---|
-| Logistic T-learner | 0.789 | 0.619 | 0.213 | 0.573 |
-| CatBoost T-learner | 0.771 | 0.583 | 0.181 | 0.654 |
-| LightGBM T-learner | 0.745 | 0.555 | 0.227 | 0.963 |
-| XGBoost T-learner | 0.754 | 0.562 | 0.209 | 0.873 |
+| Family | Count | Description |
+|--------|-------|-------------|
+| Static | 10 | log company_size, log revenue, revenue_per_employee, tenure_years, is_annual/monthly, tickets_per_revenue/employee, email_engagement, support_tickets_30d |
+| Temporal | 33 | Level (mean/median/max/min/total, recent_7/14/30d, early_7/14/30d), Trend (slopes 14/30/60d, recent_minus_early, recent_early_ratio, pct_decline), Inactivity (zero_days, missing_days, active_days_pct, longest_zero_streak, days_since_activity), Volatility (std, cv, mean_abs_daily_change, down_day_proportion, max_drawdown, trend_residual_var), Shape (halves total/ratio) |
+| PCA | 5 | 5 components from 60-day usage sequence |
+| OHE | 5 | package_Basic/Enterprise/Pro, subscription_type_Annual/Monthly |
 
-**Champion selected by**: PR-AUC (best balance of discrimination + calibration for imbalanced data).
+## 4. Validation Protocol
 
-### 2.4 Validation Protocol
-- **Stratified 5-fold CV** by `(contacted, churned)` group
-- **Cross-fitted OOF predictions**: every customer scored by models trained without that customer
-- **Nested calibration**: Platt/sigmoid calibrators fitted on OOF predictions, separately per treatment arm
-- **Bootstrap uncertainty**: 500 resamples, SE recorded per customer
+- **Split**: Stratified 80/20 by (contacted x churned) joint distribution
+- **Cross-validation**: 5-fold x 3-repeat, stratified
+- **Preprocessing**: All scaling, PCA, OHE fitted inside each training fold
+- **Calibration**: CalibratedClassifierCV (Platt scaling, internal 3-fold CV) per treatment arm
+- **Champion selection**: Dev OOF DR@50 with Brier < 0.20 calibration threshold
 
-### 2.5 Metrics
-| Category | Metrics |
-|---|---|
-| Prediction | ROC-AUC, PR-AUC, Brier, Expected Calibration Error |
-| Uplift | AUUC, Qini coefficient, DR policy value@50 |
-| Business | Uplift@50, retrained customers, contact cost per saved customer |
-| Stability | Bootstrap Jaccard@50, fold variance, rank SD |
+## 5. Models Compared
 
-## 3. Key Results
+9 models across 4 architectures:
+
+| Architecture | Logistic | CatBoost |
+|-------------|----------|----------|
+| S-learner (single model + T as feature) | logistic_s, logistic_s_int (with interactions) | catboost_s |
+| T-learner (separate per arm) | logistic_t | catboost_t |
+| DR-learner (doubly robust pseudo-outcomes) | logistic_dr | catboost_dr |
+| X-learner (imputed effect models) | logistic_x | catboost_x |
+
+Plus logistic-catboost blend and 3 baselines (random, risk-based, historical).
+
+## 6. Results
+
+### Champion: logistic_t
 
 | Metric | Value |
-|---|---|
-| Champion model | CatBoost (multi-dim scorecard) |
-| AUC | 0.771 |
-| PR-AUC | 0.583 |
-| Calibrated Brier (p₀) | 0.166 |
-| Calibrated Brier (p₁) | 0.169 |
-| Mean uplift | 0.094 (9.4pp average churn reduction) |
-| Uplift@50 | 0.654 (65pp reduction for top 50 contacts) |
-| Bootstrap SE | 0.003 |
-| Persuadable customers | 558/4000 (14%) |
-| Sleeping dogs | 585/4000 (15%) |
+|--------|-------|
+| Test AUC | 0.8036 |
+| Test Brier | 0.1626 |
+| DR@50 | 0.5692 |
+| Mean uplift@50 | 0.3578 |
+| Arm0 AUC | 0.7800 |
+| Arm1 AUC | 0.8309 |
 
-**Top-3 customers for contact:**
-1. Customer 2271: p₀=0.975, p₁=0.066, uplift=0.910 (91pp reduction!)
-2. Customer 75: p₀=0.874, p₁=0.034, uplift=0.840
-3. Customer 234: p₀=0.960, p₁=0.161, uplift=0.799
+### Model Ranking (by Test DR@50)
 
-## 4. Causal Assumptions & Limitations
+| Rank | Model | AUC | DR@50 | Uplift@50 |
+|------|-------|-----|-------|-----------|
+| 1 | logistic_t | 0.8036 | **0.5692** | 0.3578 |
+| 2 | blend_t | 0.8036 | 0.5557 | — |
+| 3 | catboost_t | 0.7991 | 0.4312 | 0.3283 |
+| 4 | catboost_dr | 0.7981 | 0.3955 | 0.2582 |
+| 5 | logistic_x | 0.8036 | 0.3889 | 0.3017 |
+| 6 | logistic_dr | 0.8036 | 0.3527 | 0.2551 |
+| 7 | catboost_x | 0.7981 | 0.3455 | 0.2905 |
+| 8 | catboost_s | 0.7879 | 0.3232 | 0.0933 |
+| 9 | logistic_s | 0.7894 | 0.1389 | 0.1124 |
 
-1. **Consistency**: Recorded contact matches the intervention being modeled
-2. **Positivity**: All customers have non-zero probability of both contact and no-contact
-3. **Conditional ignorability** (weakest): No unmeasured confounders affect both contact assignment and churn
+### Baselines
 
-**Limitation**: Account manager judgment, relationship quality, and unresolved complaints are not in the dataset. The uplift estimate is observational, not experimental. Recommend randomized exploration (10-20% of capacity) in production to validate treatment effects.
+- Random: +0.007 (near zero)
+- Risk-based (top churn): **-0.110** (confounding confirmed)
+- Historical: -0.001 (no better than random)
 
-## 5. Production Architecture
+## 7. Key Findings
 
-```
-                           ┌─────────────────┐
-                           │  CRM / Database  │
-                           └────────┬────────┘
-                                    │
-                    ┌───────────────▼───────────────┐
-                    │      DVC Data Pipeline        │
-                    │  validate → features → split  │
-                    └───────────────┬───────────────┘
-                                    │
-                    ┌───────────────▼───────────────┐
-                    │       MLflow Experiment       │
-                    │  train → evaluate → register  │
-                    └───────────────┬───────────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              │                     │                     │
-    ┌─────────▼────────┐  ┌────────▼───────┐  ┌─────────▼────────┐
-    │   Champion Bundle │  │   Challenger B  │  │   Fallback Model │
-    │   (CatBoost DR)   │  │   (LightGBM DR) │  │   (Business Rule)│
-    └─────────┬────────┘  └────────┬───────┘  └─────────┬────────┘
-              │                    │                     │
-              └────────────────────┼─────────────────────┘
-                                   │
-                         ┌─────────▼──────────┐
-                         │   FastAPI Serving  │
-                         │  /v1/score, /rank  │
-                         │  /health, /metrics │
-                         └─────────┬──────────┘
-                                   │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-            ┌───────▼──────┐ ┌────▼─────┐ ┌──────▼──────┐
-            │  Prometheus  │ │  Grafana │ │ Audit Logs  │
-            │  Metrics     │ │  3 Dash  │ │ (CSV/DB)    │
-            └──────────────┘ └──────────┘ └─────────────┘
-```
+1. **Logistic T-learner wins** — At 4,000 customers (2,000 per arm), simple regularized logistic regression beats all tree-based models. Boosting needs more data to justify its variance.
 
-## 6. Monitoring (3 Dashboards)
+2. **Confounding is real** — The risk-based baseline = -0.110. Contacting the riskiest customers was actively harmful.
 
-1. **Model & Business**: AUUC, Qini, uplift@50, churn rates, segment performance, champion/challenger agreement
-2. **Operations**: Latency (p50/p95/p99), error rate, schema failures, model version per replica, resource usage
-3. **Data & Drift**: PSI, KS, missing rate, category novelty, prediction distribution shifts
+3. **DR-learner CATE tuning works** — catboost_dr went from DR@50=0.130 to 0.395 after Optuna-tuned ElasticNet.
 
-## 7. Model Card
+4. **Calibration threshold matters** — Brier < 0.20 ensures the champion produces reliable probabilities.
 
-| Field | Value |
-|---|---|
-| Model | Logistic/CatBoost T-learner (champion by PR-AUC) |
-| Features | 50 (10 static + 32 temporal + 5 PCA + 3 OHE) |
-| Train date | 2026-07-19 |
-| Churn rate | 31.4% |
-| Framework | sklearn, CatBoost, LightGBM, XGBoost, MLflow |
-| License | MIT (code), Apache 2.0 (CatBoost) |
-| Causal assumptions | Consistency, Positivity, Conditional ignorability |
+5. **The champion is deployable** — 24ms inference, 6.6s bundle load, FastAPI with 14 error codes, Prometheus metrics, Grafana dashboards.
+
+## 8. Infrastructure
+
+- **CLI**: 9 commands (validate/split/train/evaluate/rank/bundle/ablate/tune/run)
+- **MLflow**: 154 runs, SQLite backend, full metrics + artifacts
+- **DVC**: 6 pipeline stages (validate -> split -> train -> evaluate -> rank -> bundle)
+- **FastAPI**: 5 endpoints (health/ready/score/rank/model-info) + /metrics
+- **Docker**: 4 services (API + MLflow + Prometheus + Grafana), non-root user
+- **Testing**: 102 tests across 7 categories
+- **Airflow**: Scoring DAG (weekly) + Retraining DAG (monthly)

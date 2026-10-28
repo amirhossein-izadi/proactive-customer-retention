@@ -1,8 +1,4 @@
-"""DR-learner training — cross-fitted nuisance models + ElasticNet CATE.
-
-Model-agnostic: uses ``model_cls`` for outcome models.
-Propensity is always logistic. CATE is ElasticNet (sparse feature selection).
-"""
+"""DR-learner training — cross-fitted nuisance models + tuned ElasticNet CATE."""
 
 from __future__ import annotations
 
@@ -13,29 +9,8 @@ from sklearn.model_selection import StratifiedKFold
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
 from retention.evaluation.policy_value import dr_pseudo_outcome, dr_policy_value
 from retention.evaluation.predictive import compute_metrics as factual_metrics
-from retention.features.builder import build_preprocessor, get_categorical_indices
-from retention.settings.config import get_settings
-
-_META_KEYS = {"n_folds", "final_alpha", "final_l1_ratio"}
-
-
-def _capacity() -> int:
-    return get_settings().top_k
-
-
-def _model_kw(model_cls, params: dict, prep, seed_key: str | None, seed_value: int) -> dict:
-    kw = {k: v for k, v in params.items() if k not in _META_KEYS}
-    if seed_key:
-        kw[seed_key] = seed_value
-    else:
-        kw["random_seed"] = seed_value
-    try:
-        from catboost import CatBoostClassifier as _CBC
-        if issubclass(model_cls, _CBC):
-            kw["cat_features"] = get_categorical_indices(prep)
-    except Exception:
-        pass
-    return kw
+from retention.features.builder import build_preprocessor
+from retention.modeling.train.shared import capacity, model_kw, tune_elasticnet
 
 
 def train_dr_learner(
@@ -51,10 +26,8 @@ def train_dr_learner(
     Xd_all = prep.fit_transform(Xd)
     Xt_all = prep.transform(Xt)
     n = len(Xd)
-    cap = _capacity()
+    cap = capacity()
     n_folds = params.get("n_folds", 5)
-    final_alpha = params.get("final_alpha", 0.1)
-    final_l1_ratio = params.get("final_l1_ratio", 0.5)
 
     stratum = np.array([f"{t}_{y}" for t, y in zip(Td, Yd)])
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=SEED["outer_cv_seed"])
@@ -69,9 +42,9 @@ def train_dr_learner(
         T_tr, T_va = Td[tr], Td[va]
         Y_tr, Y_va = Yd[tr], Yd[va]
 
-        m0 = model_cls(**_model_kw(model_cls, params, prep, seed_key, s)).fit(
+        m0 = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
             X_tr[T_tr == 0], Y_tr[T_tr == 0])
-        m1 = model_cls(**_model_kw(model_cls, params, prep, seed_key, s + 1)).fit(
+        m1 = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
             X_tr[T_tr == 1], Y_tr[T_tr == 1])
         e = LogisticRegression(max_iter=1000, random_state=s).fit(X_tr, T_tr)
 
@@ -80,13 +53,14 @@ def train_dr_learner(
         e_d[va] = np.clip(e.predict_proba(X_va)[:, 1], 0.02, 0.98)
         psi[va] = dr_pseudo_outcome(p0_d[va], p1_d[va], e_d[va], T_va, Y_va)
 
-    cate = ElasticNet(
-        alpha=final_alpha, l1_ratio=final_l1_ratio, max_iter=2000, random_state=s)
+    # Tune ElasticNet CATE on the cross-fitted pseudo-outcomes
+    best = tune_elasticnet(Xd_all, psi, seed=s)
+    cate = ElasticNet(alpha=best["alpha"], l1_ratio=best["l1_ratio"], max_iter=5000, random_state=s)
     cate.fit(Xd_all, psi)
 
-    m0_full = model_cls(**_model_kw(model_cls, params, prep, seed_key, s)).fit(
+    m0_full = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
         Xd_all[Td == 0], Yd[Td == 0])
-    m1_full = model_cls(**_model_kw(model_cls, params, prep, seed_key, s + 1)).fit(
+    m1_full = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
         Xd_all[Td == 1], Yd[Td == 1])
     e_full = LogisticRegression(max_iter=1000, random_state=s).fit(Xd_all, Td)
 

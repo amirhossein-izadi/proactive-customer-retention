@@ -7,19 +7,14 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
-from retention.features.builder import build_preprocessor, get_categorical_indices
+from retention.features.builder import build_preprocessor
 from retention.modeling.cross_fitting import (
-    _maybe_cat_features,
     dr_policy_value_50,
     factual_metrics,
     repeated_cross_fit_slearner,
 )
 from retention.modeling.s_learner import SLearner
-from retention.settings.config import get_settings
-
-
-def _capacity() -> int:
-    return get_settings().top_k
+from retention.modeling.train.shared import capacity
 
 
 def train_s_learner(
@@ -45,7 +40,7 @@ def train_s_learner(
     uplift_d = p0_d - p1_d
     se_d = np.sqrt(np.var(oof["p0"] - oof["p1"], axis=1, ddof=1))
     fm_d = factual_metrics(Yd, p0_d, p1_d, Td)
-    dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=_capacity())
+    dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=capacity())
 
     prep = build_preprocessor(include_pca=True, scale=True)
     Xd_all = prep.fit_transform(Xd)
@@ -60,9 +55,6 @@ def train_s_learner(
             kw[seed_key] = s
         else:
             kw["random_seed"] = s
-        cat_idx = _maybe_cat_features(model_cls, prep)
-        if cat_idx:
-            kw["cat_features"] = cat_idx
         sl = SLearner(model_cls(**kw))
         sl.fit(pd.DataFrame(Xd_all), Td, Yd)
         p0, p1 = sl.predict_potential_outcomes(pd.DataFrame(Xt_all))
@@ -80,7 +72,7 @@ def train_s_learner(
     uplift_t = p0_t - p1_t
     se_t = np.sqrt(np.var(tp0 - tp1, axis=1, ddof=1))
     fm_t = factual_metrics(Yt, p0_t, p1_t, Tt)
-    cap = _capacity()
+    cap = capacity()
     dr50_t = dr_policy_value_50(uplift_t, p0_t, p1_t, e_t, Tt, Yt, k=cap)
     u50_t = float(np.sort(uplift_t)[::-1][:cap].mean())
 

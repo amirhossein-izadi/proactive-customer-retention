@@ -9,10 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from retention.data.joining import pivot_usage
 from retention.monitoring.metrics import (
+    ACTIVE_DAYS_PCT,
+    INFERENCE_COMMON_SUPPORT,
     INFERENCE_LATENCY,
     INFERENCE_REQUESTS,
     NEGATIVE_UPLIFT_RATE,
     UPLIFT_SCORES,
+    ZERO_DAYS_RATIO,
 )
 from retention.serving.dependencies import get_bundle
 from retention.settings.config import Settings, get_settings
@@ -37,7 +40,7 @@ async def rank_batch(
     for inp in inputs:
         usage_df = pd.DataFrame(
             {
-                "customer_id": [inp.customer_id],
+                "customer_id": [inp.customer_id] * len(inp.usage),
                 "day": [p.day for p in inp.usage],
                 "daily_usage": [p.daily_usage for p in inp.usage],
             }
@@ -57,6 +60,11 @@ async def rank_batch(
     UPLIFT_SCORES.observe(mean_uplift)
     if mean_uplift < 0:
         NEGATIVE_UPLIFT_RATE.inc()
+    n_usage = sum(len(inp.usage) for inp in inputs)
+    n_zero = sum(1 for inp in inputs for p in inp.usage if p.daily_usage == 0)
+    ACTIVE_DAYS_PCT.set(n_usage / (60.0 * max(len(inputs), 1)))
+    ZERO_DAYS_RATIO.set(n_zero / max(n_usage, 1))
+    INFERENCE_COMMON_SUPPORT.set(float(rank_df["in_common_support"].mean()))
 
     ranked = [
         CustomerOutput(

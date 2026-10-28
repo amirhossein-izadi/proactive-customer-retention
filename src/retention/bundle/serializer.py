@@ -1,7 +1,12 @@
-"""Bundle builder — trains champion on all dev data, calibrates, saves manifests.
+"""Bundle builder — trains champion outcome models + calibrated serving models.
 
-Also computes global feature importance (SHAP TreeExplainer) and saves it
-for downstream use in rankings and the evaluation report.
+Architecture:
+  - m0, m1:  CatBoost outcome models (one per treatment arm) — used for SHAP explanations
+  - cal0, cal1: CalibratedClassifierCV wrapping CatBoost with internal 3-fold CV
+                for Platt scaling — used for serving/production predictions
+  - Serving pipeline: preprocessor → CalibratedClassifierCV → calibrated probabilities
+  - The CalibratedClassifierCV trains its own models internally with train/cal split,
+    ensuring proper calibration on held-out predictions within each arm.
 """
 
 from __future__ import annotations
@@ -17,7 +22,6 @@ from retention.bundle.metadata import write_champion_manifests
 try:
     import shap
     from retention.explainability.uplift_explanations import uplift_explanations
-
     _HAS_SHAP = True
 except ImportError:
     _HAS_SHAP = False
@@ -31,15 +35,14 @@ from retention.utils.paths import CHAMPION_DIR, SPLITS
 from retention.utils.serialization import save_pickle, save_json
 
 CHAMPION_PARAMS = dict(
-    iterations=500,
-    depth=4,
-    learning_rate=0.022,
-    l2_leaf_reg=25,
-    random_strength=4.2,
-    subsample=0.64,
-    verbose=False,
-    allow_writing_files=False,
+    iterations=500, depth=4, learning_rate=0.022,
+    l2_leaf_reg=25, random_strength=4.2, subsample=0.64,
+    verbose=False, allow_writing_files=False,
 )
+
+
+def _catboost(**kw) -> CatBoostClassifier:
+    return CatBoostClassifier(**{**CHAMPION_PARAMS, **kw})
 
 
 def build_champion_bundle() -> None:
@@ -56,27 +59,29 @@ def build_champion_bundle() -> None:
     X_all = prep.fit_transform(X_raw)
     save_pickle(prep, CHAMPION_DIR / "preprocessor.pkl")
 
-    def _cb(**kw):
-        return CatBoostClassifier(**{**CHAMPION_PARAMS, **kw})
-
-    m0 = _cb(random_seed=42).fit(X_all[T == 0], Y[T == 0])
-    m1 = _cb(random_seed=43).fit(X_all[T == 1], Y[T == 1])
+    # ── Outcome models (for SHAP / analysis) ──
+    m0 = _catboost(random_seed=42).fit(X_all[T == 0], Y[T == 0])
+    m1 = _catboost(random_seed=43).fit(X_all[T == 1], Y[T == 1])
     save_pickle(m0, CHAMPION_DIR / "m0.pkl")
     save_pickle(m1, CHAMPION_DIR / "m1.pkl")
 
-    cal0 = CalibratedClassifierCV(_cb(random_seed=44), method="sigmoid", cv=3).fit(
+    # ── Calibrated serving models ──
+    # CalibratedClassifierCV does internal 3-fold CV: trains CatBoost on 2/3,
+    # fits Platt scaler on held-out 1/3 per fold, averages 3 calibrated models.
+    cal0 = CalibratedClassifierCV(_catboost(random_seed=44), method="sigmoid", cv=3).fit(
         X_all[T == 0], Y[T == 0]
     )
-    cal1 = CalibratedClassifierCV(_cb(random_seed=45), method="sigmoid", cv=3).fit(
+    cal1 = CalibratedClassifierCV(_catboost(random_seed=45), method="sigmoid", cv=3).fit(
         X_all[T == 1], Y[T == 1]
     )
     save_pickle(cal0, CHAMPION_DIR / "calibrator_0.pkl")
     save_pickle(cal1, CHAMPION_DIR / "calibrator_1.pkl")
 
+    # ── Propensity ──
     prop = LogisticRegression(max_iter=1000, random_state=42).fit(X_all, T)
     save_pickle(prop, CHAMPION_DIR / "propensity.pkl")
 
-    # ── SHAP global + uplift explanations ──
+    # ── SHAP explanations ──
     if _HAS_SHAP:
         try:
             fnames = all_feature_names(include_pca=True)
@@ -90,7 +95,6 @@ def build_champion_bundle() -> None:
                 imp_dict = {fnames[i]: round(float(imp[i]), 6) for i in range(len(fnames))}
                 save_json(imp_dict, CHAMPION_DIR / f"global_importance_{arm_label}.json")
                 print(f"  SHAP importance ({arm_label}): {len(fnames)} features")
-
             exp = uplift_explanations(m0, m1, sample, fnames)
             imp_diff = np.abs(exp).mean(0)
             diff_dict = {fnames[i]: round(float(imp_diff[i]), 6) for i in range(len(fnames))}
@@ -112,7 +116,7 @@ def build_champion_bundle() -> None:
         n_dev_samples=len(X_all),
         extra_metadata={
             "champion_params": CHAMPION_PARAMS,
-            "propensity": "logistic, no class_weight",
+            "calibration": "CalibratedClassifierCV, Platt sigmoid, internal 3-fold CV",
         },
     )
 

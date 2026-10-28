@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_predict
 
 
 def fit_propensity(X: pd.DataFrame, T: np.ndarray) -> LogisticRegression:
@@ -21,8 +22,6 @@ def fit_propensity(X: pd.DataFrame, T: np.ndarray) -> LogisticRegression:
 def cross_fitted_propensity(
     X: pd.DataFrame, T: np.ndarray, cv_folds: int = 5, seed: int = 42
 ) -> np.ndarray:
-    from sklearn.model_selection import cross_val_predict
-
     model = LogisticRegression(max_iter=1000, random_state=seed)
     return np.clip(
         cross_val_predict(model, X, T, cv=cv_folds, method="predict_proba")[:, 1],

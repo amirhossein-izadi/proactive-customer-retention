@@ -15,8 +15,6 @@ def fit_churn_risk_model(X_raw: pd.DataFrame, Y: np.ndarray) -> Pipeline:
     Used by ``baselines.py`` to compute a churn-risk-only ranking for
     comparison with the uplift-based champion.
     """
-    import numpy as np
-
     prep = build_preprocessor(include_pca=True, scale=True)
     prep.fit(X_raw, Y)
     pipe = Pipeline(
