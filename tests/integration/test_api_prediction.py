@@ -1,10 +1,20 @@
 """API prediction — full integration test of the scoring API."""
 
 import json
+
+import pytest
 from fastapi.testclient import TestClient
+
 from retention.serving.app import app
+from retention.serving.dependencies import get_bundle
 
 client = TestClient(app)
+
+
+def _require_bundle():
+    """Skip when no champion bundle is present (e.g. fresh CI checkout)."""
+    if get_bundle() is None:
+        pytest.skip("champion bundle not built — run `retention bundle` first")
 
 
 def _valid_payload():
@@ -34,6 +44,7 @@ def test_ready():
 
 
 def test_score_returns_expected_fields():
+    _require_bundle()
     r = client.post("/v1/score", json=_valid_payload())
     assert r.status_code == 200
     j = r.json()
@@ -45,6 +56,7 @@ def test_score_returns_expected_fields():
 
 
 def test_score_probabilities_in_bounds():
+    _require_bundle()
     r = client.post("/v1/score", json=_valid_payload())
     j = r.json()
     assert 0 <= j["p_churn_no_contact"] <= 1
@@ -52,6 +64,7 @@ def test_score_probabilities_in_bounds():
 
 
 def test_rank_returns_list():
+    _require_bundle()
     r = client.post("/v1/rank", json=[_valid_payload(), _valid_payload()])
     assert r.status_code == 200
     j = r.json()
