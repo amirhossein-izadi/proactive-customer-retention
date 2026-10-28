@@ -1,7 +1,15 @@
 """Missing days — partial usage history should not crash the pipeline."""
 
+import pytest
 from fastapi.testclient import TestClient
+
 from retention.serving.app import app
+from retention.serving.dependencies import get_bundle
+
+pytestmark = pytest.mark.skipif(
+    get_bundle() is None,
+    reason="champion bundle not built — run `retention bundle` first",
+)
 
 client = TestClient(app)
 

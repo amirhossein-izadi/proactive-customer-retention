@@ -12,7 +12,7 @@ from retention.settings.config import Settings, get_settings
 from retention.utils.paths import CHAMPION_DIR
 
 
-def _load_bundle(path: str | Path) -> RetentionPolicyBundle | None:
+def _load_bundle(path: str | Path = CHAMPION_DIR) -> RetentionPolicyBundle | None:
     """Load bundle from disk — no caching. Used by health checks to bypass cache on miss."""
     p = Path(path)
     if not (p / "calibrator_0.pkl").exists():
