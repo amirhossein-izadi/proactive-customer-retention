@@ -1,4 +1,5 @@
-# Didar Retention — Causal Uplift Model for Churn Reduction
+# Didar Retention 
+## Causal Uplift Model for Churn Reduction
 
 A causal uplift modeling project on [Didar](https://didar.me) CRM data for proactive churn prevention. Given customer attributes and 60 days of product-usage history per customer, the system estimates each customer's churn reduction from being contacted and prioritizes exactly the top 50 customers for a retention campaign — ranking by treatment effect, not by raw churn risk.
 
