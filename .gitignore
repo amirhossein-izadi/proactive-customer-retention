@@ -34,8 +34,8 @@ artifacts/rankings/
 artifacts/plots/
 artifacts/runs/
 
-# Data (large files — tracked via DVC, not git)
-data/raw/*.csv
+# Data — raw CSVs ship in-repo so every command runs on a fresh clone;
+# DVC pointers (*.dvc) pin immutable SHA256 hashes for provenance.
 data/interim/
 data/processed/
 data/snapshots/

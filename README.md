@@ -28,6 +28,10 @@ docker compose up -d
 curl http://localhost:8001/health
 ```
 
+**Data**: raw CSVs (`data/raw/*.csv`) ship in the repo, so every command above runs
+on a fresh clone. DVC pointer files pin SHA256 hashes for provenance
+(`uv run dvc repro` for the staged pipeline).
+
 ## Results
 
 | Policy | DR@50 | Meaning |
@@ -37,7 +41,7 @@ curl http://localhost:8001/health
 | Risk-based (top churn) | -0.110 | **Negative** — historical contact was harmful |
 | Historical policy | -0.001 | No better than random |
 
-See `report.md` for full model comparison (9 models, 102 tests passing).
+See `report.md` for full model comparison (9 models, 104 tests passing).
 
 ## CLI Commands
 
@@ -68,8 +72,8 @@ All predictions cross-fitted (5-fold x 3-repeat). Preprocessing fitted inside fo
 - **API**: FastAPI with 5 endpoints, 14 error codes, Prometheus metrics
 - **Docker**: Non-root user, uv-based, 4 services (API + MLflow + Prometheus + Grafana)
 - **MLflow**: 154 runs logged (SQLite), full metrics + artifacts per model
-- **DVC**: 6 pipeline stages, SHA256-tracked data
-- **Tests**: 102 passing (unit, integration, leakage, contract, robustness, property, golden)
+- **DVC**: 6 pipeline stages, SHA256-pinned data (+ raw CSVs ship in-repo for repo-level reproducibility)
+- **Tests**: 104 passing (unit, integration, leakage, contract, robustness, property, golden)
 
 ## Causal Assumptions
 
