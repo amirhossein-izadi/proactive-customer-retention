@@ -7,6 +7,8 @@ import time
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
+from retention.bundle.model_bundle import RetentionPolicyBundle
+from retention.contracts.api_schema import CustomerInput, CustomerOutput, RankingOutput
 from retention.data.joining import pivot_usage
 from retention.monitoring.metrics import (
     ACTIVE_DAYS_PCT,
@@ -19,8 +21,6 @@ from retention.monitoring.metrics import (
 )
 from retention.serving.dependencies import get_bundle
 from retention.settings.config import Settings, get_settings
-from retention.contracts.api_schema import CustomerInput, CustomerOutput, RankingOutput
-from retention.bundle.model_bundle import RetentionPolicyBundle
 
 router = APIRouter(prefix="/v1", tags=["rank"])
 
@@ -28,8 +28,8 @@ router = APIRouter(prefix="/v1", tags=["rank"])
 @router.post("/rank", response_model=RankingOutput)
 async def rank_batch(
     inputs: list[CustomerInput],
-    bundle: RetentionPolicyBundle | None = Depends(get_bundle),
-    settings: Settings = Depends(get_settings),
+    bundle: RetentionPolicyBundle | None = Depends(get_bundle),  # noqa: B008
+    settings: Settings = Depends(get_settings),  # noqa: B008
 ):
     if bundle is None:
         raise HTTPException(status_code=503, detail="Model not loaded. Try /health or /ready.")

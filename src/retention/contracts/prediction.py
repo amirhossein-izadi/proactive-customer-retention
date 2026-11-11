@@ -9,7 +9,6 @@ from typing import Annotated, TypedDict
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ── Ranking output schemas (API / CSV) ──
 
 

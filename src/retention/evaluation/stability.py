@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 
-def jaccard_stability(top_sets: list[set], k: int = 50) -> float:
+def jaccard_stability(top_sets: list[set]) -> float:
     """Mean pairwise Jaccard overlap across repeats/folds."""
     n = len(top_sets)
     if n < 2:

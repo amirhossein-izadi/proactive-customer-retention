@@ -1,6 +1,5 @@
 """DVC pipeline — verify all stages are reachable and commands exist."""
 
-import subprocess
 from pathlib import Path
 
 

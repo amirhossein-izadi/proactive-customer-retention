@@ -38,7 +38,6 @@ def train_s_learner(
     p1_d = oof["p1"].mean(1)
     e_d = oof["e"].mean(1)
     uplift_d = p0_d - p1_d
-    se_d = np.sqrt(np.var(oof["p0"] - oof["p1"], axis=1, ddof=1))
     fm_d = factual_metrics(Yd, p0_d, p1_d, Td)
     dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=capacity())
 

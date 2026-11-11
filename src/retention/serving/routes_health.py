@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from retention.serving.dependencies import _load_bundle, clear_bundle_cache, get_bundle
 from retention.monitoring.metrics import MODEL_LOADED
+from retention.serving.dependencies import _load_bundle, clear_bundle_cache, get_bundle
 
 router = APIRouter(tags=["health"])
 

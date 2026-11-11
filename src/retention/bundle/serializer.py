@@ -21,24 +21,25 @@ from retention.bundle.metadata import write_champion_manifests
 
 try:
     import shap
+
     from retention.explainability.uplift_explanations import uplift_explanations
     _HAS_SHAP = True
 except ImportError:
     _HAS_SHAP = False
-from retention.data.joining import join_customers_usage, feature_frame
+from retention.data.joining import feature_frame, join_customers_usage
 from retention.data.loading import load_all
 from retention.features.builder import build_preprocessor
 from retention.features.feature_names import all_feature_names
 from retention.features.registry import FEATURE_VERSION
 from retention.settings.config import get_settings
 from retention.utils.paths import CHAMPION_DIR, SPLITS
-from retention.utils.serialization import save_pickle, save_json
+from retention.utils.serialization import save_json, save_pickle
 
-CHAMPION_PARAMS = dict(
-    iterations=500, depth=4, learning_rate=0.022,
-    l2_leaf_reg=25, random_strength=4.2, subsample=0.64,
-    verbose=False, allow_writing_files=False,
-)
+CHAMPION_PARAMS = {
+    "iterations": 500, "depth": 4, "learning_rate": 0.022,
+    "l2_leaf_reg": 25, "random_strength": 4.2, "subsample": 0.64,
+    "verbose": False, "allow_writing_files": False,
+}
 
 
 def _catboost(**kw) -> CatBoostClassifier:
@@ -95,7 +96,7 @@ def build_champion_bundle() -> None:
                 imp_dict = {fnames[i]: round(float(imp[i]), 6) for i in range(len(fnames))}
                 save_json(imp_dict, CHAMPION_DIR / f"global_importance_{arm_label}.json")
                 print(f"  SHAP importance ({arm_label}): {len(fnames)} features")
-            exp = uplift_explanations(m0, m1, sample, fnames)
+            exp = uplift_explanations(m0, m1, sample)
             imp_diff = np.abs(exp).mean(0)
             diff_dict = {fnames[i]: round(float(imp_diff[i]), 6) for i in range(len(fnames))}
             save_json(diff_dict, CHAMPION_DIR / "uplift_explanation.json")

@@ -42,9 +42,8 @@ def train_x_learner(
     n = len(Xd)
     cap = capacity()
     n_folds = params.get("n_folds", 5)
-    effect_alpha = params.get("effect_alpha", 1.0)
 
-    stratum = np.array([f"{t}_{y}" for t, y in zip(Td, Yd)])
+    stratum = np.array([f"{t}_{y}" for t, y in zip(Td, Yd, strict=True)])
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=SEED["outer_cv_seed"])
     s = SEED["model_seed"]
 
@@ -61,10 +60,10 @@ def train_x_learner(
         T_tr, T_va = Td[tr], Td[va]
         Y_tr, Y_va = Yd[tr], Yd[va]
 
-        m0 = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
+        m0 = model_cls(**model_kw(params, seed_key, s)).fit(
             X_tr[T_tr == 0], Y_tr[T_tr == 0]
         )
-        m1 = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
+        m1 = model_cls(**model_kw(params, seed_key, s + 1)).fit(
             X_tr[T_tr == 1], Y_tr[T_tr == 1]
         )
         e = LogisticRegression(max_iter=1000, random_state=s).fit(X_tr, T_tr)
@@ -97,10 +96,10 @@ def train_x_learner(
     tau1_model = Ridge(alpha=best["alpha"]).fit(X1_all, D1_all)
 
     # ── Full-data nuisance models for test predictions ──
-    m0_full = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
+    m0_full = model_cls(**model_kw(params, seed_key, s)).fit(
         Xd_all[Td == 0], Yd[Td == 0]
     )
-    m1_full = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
+    m1_full = model_cls(**model_kw(params, seed_key, s + 1)).fit(
         Xd_all[Td == 1], Yd[Td == 1]
     )
     e_full = LogisticRegression(max_iter=1000, random_state=s).fit(Xd_all, Td)
@@ -110,7 +109,6 @@ def train_x_learner(
     e_t = np.clip(e_full.predict_proba(Xt_all)[:, 1], 0.02, 0.98)
     tau0_t = tau0_model.predict(Xt_all).ravel()
     tau1_t = tau1_model.predict(Xt_all).ravel()
-    e_d_fd = np.clip(e_full.predict_proba(Xd_all)[:, 1], 0.02, 0.98)
     uplift_t = e_t * tau0_t + (1 - e_t) * tau1_t
 
     uplift_d = p0_d - p1_d

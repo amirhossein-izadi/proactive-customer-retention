@@ -8,7 +8,6 @@ Wires: ``policy/eligibility`` (tenure + usage coverage), ``policy/fallback``
 from __future__ import annotations
 
 import json
-from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -79,7 +78,12 @@ def generate_final_ranking(k: int | None = None) -> pd.DataFrame:
     test_map = dict(
         zip(
             test_df["customer_id"],
-            zip(test_df["contacted"].values.astype(int), test_df["churned"].values.astype(int)),
+            zip(
+                test_df["contacted"].values.astype(int),
+                test_df["churned"].values.astype(int),
+                strict=True,
+            ),
+            strict=True,
         )
     )
     T_arr = np.array([test_map[cid][0] for cid in cids])
@@ -106,7 +110,7 @@ def generate_final_ranking(k: int | None = None) -> pd.DataFrame:
     sup_mask = overlap_support_mask(e, lo=support_lo, hi=support_hi)
 
     # 2. Eligibility from policy/eligibility module
-    eligible = eligible_customers(feat_df, None, min_tenure_months=1) & sup_mask
+    eligible = eligible_customers(feat_df, min_tenure_months=1) & sup_mask
 
     # 3. Abstain flag using policy/fallback
     penalty = settings.uncertainty_penalty
@@ -157,5 +161,6 @@ def generate_final_ranking(k: int | None = None) -> pd.DataFrame:
     print(f"  Mean uplift@K: {uplift[idx].mean():.4f}  SE@K: {se[idx].mean():.4f}")
     print(f"  All eligible: {eligible[idx].all()}  All support: {sup_mask[idx].all()}")
     print(f"  Abstained: {abstain[idx].sum()} / {k}")
+    print(f"  Selection gap (worst-in vs best-out): {gap:.4f}")
     print(f"  Top features: {reason_code_str}")
     return ranking

@@ -43,7 +43,7 @@ class DoublyRobustLearner:
         """Cross-fitted DR pseudo-outcomes. Requires DataFrame input."""
         X = X.reset_index(drop=True) if isinstance(X, pd.DataFrame) else pd.DataFrame(X)
         n = len(X)
-        stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y)])
+        stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])
         skf = StratifiedKFold(n_splits=self.n_folds, shuffle=True, random_state=seed)
         pseudo = np.zeros(n)
         for tr, va in skf.split(X, stratum):
@@ -58,7 +58,7 @@ class DoublyRobustLearner:
             pseudo[va] = dr_pseudo_outcome(p0, p1, e, T_va, Y_va)
         return pseudo
 
-    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> "DoublyRobustLearner":
+    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> DoublyRobustLearner:
         pseudo = self.cross_fit_pseudo_outcomes(X, T, Y)
         self.final_model_.fit(X, pseudo)
         return self

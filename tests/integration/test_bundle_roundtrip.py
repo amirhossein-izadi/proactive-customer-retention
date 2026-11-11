@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import pickle
-import numpy as np
+import tempfile
 from pathlib import Path
-from sklearn.linear_model import LogisticRegression
+
+import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import LogisticRegression
 
 BASE = Path(__file__).resolve().parent.parent.parent
 MODELS_DIR = BASE / "models" / "champion"
@@ -23,19 +25,18 @@ def test_bundle_roundtrip():
     p0_pre = m0.predict_proba(X)[:, 1]
     p1_pre = m1.predict_proba(X)[:, 1]
 
-    import tempfile
-
     with tempfile.TemporaryDirectory() as tmp:
-        pickle.dump(m0, open(Path(tmp) / "m0.pkl", "wb"))
-        pickle.dump(m1, open(Path(tmp) / "m1.pkl", "wb"))
+        d = Path(tmp)
+        (d / "m0.pkl").write_bytes(pickle.dumps(m0))
+        (d / "m1.pkl").write_bytes(pickle.dumps(m1))
         cal0 = CalibratedClassifierCV(LogisticRegression(max_iter=1000), method="sigmoid", cv=3)
         cal1 = CalibratedClassifierCV(LogisticRegression(max_iter=1000), method="sigmoid", cv=3)
         cal0.fit(X[T == 0], Y[T == 0])
         cal1.fit(X[T == 1], Y[T == 1])
-        pickle.dump(cal0, open(Path(tmp) / "calibrator_0.pkl", "wb"))
-        pickle.dump(cal1, open(Path(tmp) / "calibrator_1.pkl", "wb"))
-        m0_l = pickle.load(open(Path(tmp) / "m0.pkl", "rb"))
-        m1_l = pickle.load(open(Path(tmp) / "m1.pkl", "rb"))
+        (d / "calibrator_0.pkl").write_bytes(pickle.dumps(cal0))
+        (d / "calibrator_1.pkl").write_bytes(pickle.dumps(cal1))
+        m0_l = pickle.loads((d / "m0.pkl").read_bytes())
+        m1_l = pickle.loads((d / "m1.pkl").read_bytes())
 
     p0_post = m0_l.predict_proba(X)[:, 1]
     p1_post = m1_l.predict_proba(X)[:, 1]

@@ -74,7 +74,10 @@ def cmd_tune() -> None:
     parser.add_argument("--trials", type=int, default=0, help="Override trial count")
     args, _ = parser.parse_known_args()
     with _timed("tune"):
-        smart_tune(top_k=args.top, all_models=args.all, arch=args.arch, model=args.model, n_trials=args.trials)
+        smart_tune(
+            top_k=args.top, all_models=args.all, arch=args.arch,
+            model=args.model, n_trials=args.trials,
+        )
 
 
 def cmd_run() -> None:

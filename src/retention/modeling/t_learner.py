@@ -22,7 +22,7 @@ class TLearner:
         self.model_0: BaseEstimator | None = None
         self.model_1: BaseEstimator | None = None
 
-    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> "TLearner":
+    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> TLearner:
         self.model_0 = clone(self.estimator).fit(X[T == 0], Y[T == 0])
         self.model_1 = clone(self.estimator).fit(X[T == 1], Y[T == 1])
         return self

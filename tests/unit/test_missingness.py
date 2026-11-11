@@ -1,6 +1,7 @@
 """Missingness feature tests — missing days vs zero days are never conflated."""
 
 import numpy as np
+
 from retention.features.missingness import missingness_features
 
 

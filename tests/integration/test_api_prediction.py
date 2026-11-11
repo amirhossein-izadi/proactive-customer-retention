@@ -1,6 +1,5 @@
 """API prediction — full integration test of the scoring API."""
 
-import json
 
 import pytest
 from fastapi.testclient import TestClient

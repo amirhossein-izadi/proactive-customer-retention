@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+
 from retention.contracts.error_codes import get_error
 
 
 def register_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
-    async def global_handler(request: Request, exc: Exception):
+    async def global_handler(request: Request, exc: Exception):  # noqa: ARG001 — FastAPI handler signature
         err = get_error("INTERNAL_ERROR")
         return JSONResponse(
             status_code=err.http_status,

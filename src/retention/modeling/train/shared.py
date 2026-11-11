@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import optuna
 import numpy as np
+import optuna
 from sklearn.linear_model import ElasticNet, Ridge
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
@@ -17,8 +17,8 @@ def capacity() -> int:
     return get_settings().top_k
 
 
-def model_kw(model_cls, params: dict, seed_key: str | None, seed_value: int) -> dict:
-    """Build keyword args for model_cls: strip meta-params, add seed."""
+def model_kw(params: dict, seed_key: str | None, seed_value: int) -> dict:
+    """Build keyword args: strip meta-params, add seed."""
     kw = {k: v for k, v in params.items() if k not in _META_KEYS}
     if seed_key:
         kw[seed_key] = seed_value
@@ -27,7 +27,9 @@ def model_kw(model_cls, params: dict, seed_key: str | None, seed_value: int) -> 
     return kw
 
 
-def tune_elasticnet(X: np.ndarray, psi: np.ndarray, n_folds: int = 3, seed: int = 42, n_trials: int = 20) -> dict:
+def tune_elasticnet(
+    X: np.ndarray, psi: np.ndarray, n_folds: int = 3, seed: int = 42, n_trials: int = 20
+) -> dict:
     """Tune ElasticNet alpha/l1_ratio on pseudo-outcomes. Returns best params."""
     def objective(trial):
         alpha = trial.suggest_float("alpha", 0.001, 10.0, log=True)
@@ -44,7 +46,9 @@ def tune_elasticnet(X: np.ndarray, psi: np.ndarray, n_folds: int = 3, seed: int 
     return study.best_params
 
 
-def tune_ridge(X: np.ndarray, psi: np.ndarray, n_folds: int = 3, seed: int = 42, n_trials: int = 15) -> dict:
+def tune_ridge(
+    X: np.ndarray, psi: np.ndarray, n_folds: int = 3, seed: int = 42, n_trials: int = 15
+) -> dict:
     """Tune Ridge alpha. Returns best params."""
     def objective(trial):
         alpha = trial.suggest_float("alpha", 0.001, 100.0, log=True)

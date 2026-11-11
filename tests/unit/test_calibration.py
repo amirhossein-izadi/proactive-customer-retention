@@ -2,6 +2,7 @@
 import numpy as np
 from sklearn.calibration import calibration_curve
 
+
 def test_reliability_diagram():
     rng = np.random.default_rng(42)
     y_true = rng.integers(0, 2, size=500)

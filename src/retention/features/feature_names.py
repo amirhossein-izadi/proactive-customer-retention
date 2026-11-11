@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from retention.contracts.raw_data import usage_columns
 from retention.features.builder import (
-    PCAEmbedding,
     StaticEngineer,
     TemporalEngineer,
 )

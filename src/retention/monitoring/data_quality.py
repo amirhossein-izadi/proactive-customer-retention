@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 import pandas as pd
@@ -17,10 +18,8 @@ def run_data_quality(customers: pd.DataFrame, usage: pd.DataFrame) -> dict[str, 
     missing = {c: int(customers[c].isna().sum()) for c in customers.columns}
     n = max(len(customers), 1)
     for col, cnt in missing.items():
-        try:
+        with contextlib.suppress(Exception):
             DATA_QUALITY_MISSING_RATE.labels(column=col).set(cnt / n)
-        except Exception:
-            pass
     return {
         "n_customers": int(len(customers)),
         "n_usage_rows": int(len(usage)),

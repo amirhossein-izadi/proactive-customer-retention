@@ -18,4 +18,4 @@ def global_importance(
         sv = sv[1]
     ma: np.ndarray = np.abs(sv).mean(0)
     fn: Sequence[str] = feature_names or [f"f{i}" for i in range(len(ma))]
-    return dict(zip(fn, ma.tolist()))
+    return dict(zip(fn, ma.tolist(), strict=True))

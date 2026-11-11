@@ -37,4 +37,11 @@ def get_request_id(request: Request) -> str:
     return request.headers.get("x-request-id", "")
 
 
-__all__ = ["clear_bundle_cache", "get_bundle", "get_request_id", "get_settings", "Settings", "_load_bundle"]
+__all__ = [
+    "clear_bundle_cache",
+    "get_bundle",
+    "get_request_id",
+    "get_settings",
+    "Settings",
+    "_load_bundle",
+]

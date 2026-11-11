@@ -9,14 +9,13 @@ from __future__ import annotations
 
 import json
 import warnings
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from retention.data.loading import load_all
 from retention.data.joining import feature_frame, join_customers_usage
 from retention.data.leakage_register import get_leakage_register
+from retention.data.loading import load_all
 from retention.evaluation.bootstrap import bootstrap_ci
 from retention.evaluation.calibration import arm_calibration_report
 from retention.evaluation.policy_value import dr_policy_value, dr_pseudo_outcome
@@ -25,16 +24,16 @@ from retention.evaluation.stability import jaccard_stability
 from retention.evaluation.subgroup import subgroup_table
 from retention.evaluation.uplift import auuc, qini
 from retention.features.feature_names import all_feature_names
-from retention.monitoring.drift import drift_report
 from retention.modeling.baselines import (
     historical_policy_value,
     random_policy_value,
     risk_ranking_policy_value,
 )
 from retention.modeling.propensity import propensity_overlap_stats
+from retention.monitoring.drift import drift_report
 from retention.settings.config import get_settings
 from retention.utils.paths import ARTIFACTS, CHAMPION_DIR, METRICS_DIR, OOF_DIR, SPLITS
-from retention.utils.serialization import save_json, load_pickle
+from retention.utils.serialization import load_pickle, save_json
 
 
 def _load_drift_data() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -147,7 +146,7 @@ def evaluate_experiment() -> None:
                 scores = p0_repeats[:, rep] - data.get("p1_repeats", p0_repeats)[:, rep]
                 top_idx = np.argsort(scores)[::-1][:50]
                 top_sets.append(set(np.asarray(cids[top_idx], dtype=int)))
-            stab["jaccard@50"] = round(jaccard_stability(top_sets, k=50), 4)
+            stab["jaccard@50"] = round(jaccard_stability(top_sets), 4)
     except Exception:
         pass
 
@@ -180,6 +179,7 @@ def evaluate_experiment() -> None:
         "subgroup_analysis": sub_grps,
         "feature_drift": drift,
         "stability": stab,
+        "leakage": leakage,
         "top_features": top_features,
         "n_test": int(len(Y)),
     }

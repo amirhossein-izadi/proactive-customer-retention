@@ -1,7 +1,7 @@
 """Temporal cutoff — future data must not influence past predictions."""
 
 import numpy as np
-import pandas as pd
+
 from retention.features.temporal import _robust_slope
 
 

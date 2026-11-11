@@ -6,6 +6,7 @@ from retention.features.feature_names import all_feature_names
 
 def test_preprocessor_feature_count():
     prep = build_preprocessor(include_pca=True, scale=True)
+    assert [name for name, _ in prep.steps] == ["columns", "scaler"]
     n_features = len(all_feature_names(include_pca=True))
     # Cannot assert exact count without fitting, just check it's reasonable
     assert n_features > 30, f"Too few features: {n_features}"

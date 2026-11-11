@@ -1,6 +1,8 @@
 """Input schema — Pydantic validation for CustomerInput."""
 
-import json
+import pytest
+from pydantic import ValidationError
+
 from retention.contracts.api_schema import CustomerInput
 
 
@@ -27,24 +29,21 @@ def test_valid_input():
 def test_missing_schema_version():
     d = _valid_input()
     d.pop("schema_version")
-    import pytest
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CustomerInput(**d)
 
 
 def test_negative_usage_rejected():
     d = _valid_input()
     d["usage"][0]["daily_usage"] = -1
-    import pytest
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CustomerInput(**d)
 
 
 def test_duplicate_days():
     d = _valid_input()
     d["usage"].append({"day": 0, "daily_usage": 5.0})
-    import pytest
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         CustomerInput(**d)
 
 

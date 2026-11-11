@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 import numpy as np
 import pandas as pd
 
@@ -46,10 +48,8 @@ def drift_report(
         if len(ref) < 10 or len(cur) < 10:
             continue
         psi_val = psi(ref, cur)
-        try:
+        with contextlib.suppress(Exception):
             FEATURE_PSI.labels(feature=col).set(psi_val)
-        except Exception:
-            pass
         rows.append(
             {
                 "feature": col,

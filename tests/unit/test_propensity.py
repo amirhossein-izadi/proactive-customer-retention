@@ -1,7 +1,8 @@
 """Items 214-219: Propensity AUC, overlap, clipping sensitivity."""
 import numpy as np
-from sklearn.metrics import roc_auc_score
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+
 
 def test_propensity_diagnostics():
     rng = np.random.default_rng(42)

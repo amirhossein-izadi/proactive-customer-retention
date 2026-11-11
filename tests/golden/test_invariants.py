@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from retention.features.builder import TemporalEngineer, StaticEngineer
 from retention.data.splitting import generate_seed_manifest
+from retention.features.builder import StaticEngineer, TemporalEngineer
 
 
 # ── Nominal fixtures ──

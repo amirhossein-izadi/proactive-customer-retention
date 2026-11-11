@@ -1,6 +1,5 @@
 """Extreme values — valid extreme inputs should not crash."""
 
-import json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -49,10 +48,12 @@ def test_zero_company_size():
 
 
 def test_max_usage():
-    r = client.post("/v1/score", json=_payload(**{"usage": [{"day": d, "daily_usage": 1e6} for d in range(-59, 1)]}))
+    payload = {"usage": [{"day": d, "daily_usage": 1e6} for d in range(-59, 1)]}
+    r = client.post("/v1/score", json=_payload(**payload))
     assert r.status_code in (200, 422)
 
 
 def test_minimal_history():
-    r = client.post("/v1/score", json=_payload(**{"usage": [{"day": d, "daily_usage": 0.0} for d in range(-59, 1)]}))
+    payload = {"usage": [{"day": d, "daily_usage": 0.0} for d in range(-59, 1)]}
+    r = client.post("/v1/score", json=_payload(**payload))
     assert r.status_code in (200, 422)

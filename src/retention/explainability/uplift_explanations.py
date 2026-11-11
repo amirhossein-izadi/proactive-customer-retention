@@ -1,6 +1,5 @@
 """Uplift-specific explanations — SHAP(p0) - SHAP(p1)."""
 
-from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
@@ -11,7 +10,6 @@ def uplift_explanations(
     m0: Any,
     m1: Any,
     X: np.ndarray,
-    feature_names: Sequence[str] | None = None,
 ) -> np.ndarray:
     e0 = shap.TreeExplainer(m0)
     e1 = shap.TreeExplainer(m1)

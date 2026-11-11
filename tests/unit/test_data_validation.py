@@ -1,8 +1,11 @@
 """Data validation tests — pandera bounds, join, completeness."""
 
 import pandas as pd
-from retention.data.validation import validate_customers, validate_usage
-from retention.data.validation import check_join_integrity, check_usage_completeness
+
+from retention.data.validation import (
+    validate_customers,
+    validate_usage,
+)
 
 
 def test_validate_customers_happy_path():

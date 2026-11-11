@@ -9,13 +9,12 @@ Usage:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
-from catboost import CatBoostClassifier
-from lightgbm import LGBMClassifier
 import numpy as np
 import optuna
 import pandas as pd
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.model_selection import StratifiedKFold
@@ -31,7 +30,7 @@ from retention.tuning.search_spaces import (
     suggest_logistic,
     suggest_xgboost,
 )
-from retention.utils.paths import ARTIFACTS, CONFIGS, REPORTS, SPLITS
+from retention.utils.paths import ARTIFACTS, REPORTS, SPLITS
 
 OPTUNA_DIR = ARTIFACTS / "optuna"
 
@@ -134,19 +133,26 @@ def _run_study(
                 model.fit(X_all[tr], Y[tr])
                 factual[va] = model.predict_proba(X_all[va])[:, 1]
         else:  # t_learner
-            stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y)])
+            stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])
             for tr, va in skf.split(X_all, stratum):
                 X_tr, X_va = X_all[tr], X_all[va]
                 T_tr, T_va = T[tr], T[va]
                 Y_tr = Y[tr]
                 m0 = _build_model(model_name, params)
-                m1 = _build_model(model_name, {**params, "random_seed": seed + 1} if "random_seed" in params else params)
+                m1_params = (
+                    {**params, "random_seed": seed + 1} if "random_seed" in params else params
+                )
+                m1 = _build_model(model_name, m1_params)
                 m0.fit(X_tr[T_tr == 0], Y_tr[T_tr == 0])
                 m1.fit(X_tr[T_tr == 1], Y_tr[T_tr == 1])
-                factual[va] = np.where(T_va == 1, m1.predict_proba(X_va)[:, 1], m0.predict_proba(X_va)[:, 1])
+                factual[va] = np.where(
+                    T_va == 1, m1.predict_proba(X_va)[:, 1], m0.predict_proba(X_va)[:, 1]
+                )
 
         valid = np.isfinite(factual)
-        return float(log_loss(Y[valid], factual[valid]) + 0.5 * brier_score_loss(Y[valid], factual[valid]))
+        return float(
+            log_loss(Y[valid], factual[valid]) + 0.5 * brier_score_loss(Y[valid], factual[valid])
+        )
 
     print(f"  {model_name}/{architecture}: {n_trials} trials ... ", end="", flush=True)
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
@@ -163,7 +169,9 @@ def _run_study(
     return best
 
 
-def smart_tune(top_k: int = 0, all_models: bool = False, arch: str = "", model: str = "", n_trials: int = 0) -> list[dict]:
+def smart_tune(
+    top_k: int = 0, all_models: bool = False, arch: str = "", model: str = "", n_trials: int = 0
+) -> list[dict]:
     """Smart tuning: auto-detect or manually specify what to tune."""
     X, T, Y = _load_dev_data()
     seeds = generate_seed_manifest(42)
@@ -178,7 +186,7 @@ def smart_tune(top_k: int = 0, all_models: bool = False, arch: str = "", model: 
         pairs = [
             (a, m)
             for a in _ALL_ARCHITECTURES
-            for m in _MODEL_SPACES.keys()
+            for m in _MODEL_SPACES
             # skip lightgbm/xgboost unless explicitly requested
             if m in ("logistic", "catboost")
         ]

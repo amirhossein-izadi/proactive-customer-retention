@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 from sklearn.linear_model import LogisticRegression
 
-from retention.features.builder import build_preprocessor
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
+from retention.features.builder import build_preprocessor
 from retention.modeling.cross_fitting import (
     dr_policy_value_50,
     factual_metrics,
@@ -37,7 +36,6 @@ def train_t_learner(
     p1_d = oof["p1"].mean(1)
     e_d = oof["e"].mean(1)
     uplift_d = p0_d - p1_d
-    se_d = np.sqrt(np.var(oof["p0"] - oof["p1"], axis=1, ddof=1))
     fm_d = factual_metrics(Yd, p0_d, p1_d, Td)
     dr50_d = dr_policy_value_50(uplift_d, p0_d, p1_d, e_d, Td, Yd, k=capacity())
 

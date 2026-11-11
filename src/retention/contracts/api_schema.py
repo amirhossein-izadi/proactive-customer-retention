@@ -1,5 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
 from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class UsagePoint(BaseModel):

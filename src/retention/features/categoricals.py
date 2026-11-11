@@ -39,5 +39,9 @@ def normalize_customers(df: pd.DataFrame, category_config: dict | None = None) -
         cfg = category_config.get(col, {})
         known = cfg.get("known", sorted(out[col].dropna().unique().tolist()))
         aliases = cfg.get("aliases", {})
-        out[col] = out[col].map(lambda v: normalize_category_value(v, known, aliases)[0])
+
+        def _normalize(v, _known=known, _aliases=aliases):
+            return normalize_category_value(v, _known, _aliases)[0]
+
+        out[col] = out[col].map(_normalize)
     return out

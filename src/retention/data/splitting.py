@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,7 @@ def create_holdout_split(
     df: pd.DataFrame,
     test_size: float = 0.2,
     seed_manifest: dict | None = None,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     if seed_manifest is None:
         seed_manifest = generate_seed_manifest()
     stratum = create_stratum(df)
@@ -108,5 +107,6 @@ def build_split_pipeline(
         json.dump(folds, f, indent=2)
     save_seeds(seed_manifest, out / "seed_manifest.json")
     print(
-        f"Split pipeline complete. {len(dev_df)} dev / {len(test_df)} test, {len(folds)} outer folds."
+        f"Split pipeline complete. {len(dev_df)} dev / {len(test_df)} test, "
+        f"{len(folds)} outer folds."
     )

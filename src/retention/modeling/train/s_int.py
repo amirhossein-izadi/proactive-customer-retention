@@ -62,7 +62,6 @@ def train_s_learner_int(
     Xd_aug = _add_treatment_interactions(Xd_base, Td, base_names, top_features)
     Xt_aug = _add_treatment_interactions(Xt_base, Tt, base_names, top_features)
 
-    n = len(Xd)
     cap = capacity()
 
     # Cross-fitted OOF via S-learner

@@ -3,7 +3,6 @@
 import json
 import shutil
 from datetime import datetime
-from pathlib import Path
 
 from retention.bundle.serializer import build_champion_bundle
 from retention.evaluation.reporting import evaluate_experiment

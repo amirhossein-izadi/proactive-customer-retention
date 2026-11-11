@@ -7,7 +7,7 @@ from sklearn.linear_model import ElasticNet, LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 
 from retention.contracts.prediction import ChallengerMetrics, ChallengerPreds
-from retention.evaluation.policy_value import dr_pseudo_outcome, dr_policy_value
+from retention.evaluation.policy_value import dr_policy_value, dr_pseudo_outcome
 from retention.evaluation.predictive import compute_metrics as factual_metrics
 from retention.features.builder import build_preprocessor
 from retention.modeling.train.shared import capacity, model_kw, tune_elasticnet
@@ -29,7 +29,7 @@ def train_dr_learner(
     cap = capacity()
     n_folds = params.get("n_folds", 5)
 
-    stratum = np.array([f"{t}_{y}" for t, y in zip(Td, Yd)])
+    stratum = np.array([f"{t}_{y}" for t, y in zip(Td, Yd, strict=True)])
     skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=SEED["outer_cv_seed"])
     psi = np.zeros(n)
     p0_d = np.zeros(n)
@@ -42,9 +42,9 @@ def train_dr_learner(
         T_tr, T_va = Td[tr], Td[va]
         Y_tr, Y_va = Yd[tr], Yd[va]
 
-        m0 = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
+        m0 = model_cls(**model_kw(params, seed_key, s)).fit(
             X_tr[T_tr == 0], Y_tr[T_tr == 0])
-        m1 = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
+        m1 = model_cls(**model_kw(params, seed_key, s + 1)).fit(
             X_tr[T_tr == 1], Y_tr[T_tr == 1])
         e = LogisticRegression(max_iter=1000, random_state=s).fit(X_tr, T_tr)
 
@@ -58,9 +58,9 @@ def train_dr_learner(
     cate = ElasticNet(alpha=best["alpha"], l1_ratio=best["l1_ratio"], max_iter=5000, random_state=s)
     cate.fit(Xd_all, psi)
 
-    m0_full = model_cls(**model_kw(model_cls, params, seed_key, s)).fit(
+    m0_full = model_cls(**model_kw(params, seed_key, s)).fit(
         Xd_all[Td == 0], Yd[Td == 0])
-    m1_full = model_cls(**model_kw(model_cls, params, seed_key, s + 1)).fit(
+    m1_full = model_cls(**model_kw(params, seed_key, s + 1)).fit(
         Xd_all[Td == 1], Yd[Td == 1])
     e_full = LogisticRegression(max_iter=1000, random_state=s).fit(Xd_all, Td)
 

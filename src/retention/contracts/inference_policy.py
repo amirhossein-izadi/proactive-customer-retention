@@ -81,10 +81,8 @@ def should_abstain(
     max_uncertainty_ratio: float = 0.5,
     propensity: float | None = None,
 ) -> bool:
-    if abs(uplift) < 1e-6:
-        return True
-    if uncertainty / abs(uplift) > max_uncertainty_ratio:
-        return True
-    if propensity is not None and (propensity < 0.02 or propensity > 0.98):
-        return True
-    return False
+    return (
+        abs(uplift) < 1e-6
+        or uncertainty / abs(uplift) > max_uncertainty_ratio
+        or (propensity is not None and (propensity < 0.02 or propensity > 0.98))
+    )

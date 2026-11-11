@@ -15,7 +15,7 @@ class SLearner:
         self.estimator = estimator or LogisticRegression(max_iter=2000, C=1.0)
         self.fitted_ = None
 
-    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> "SLearner":
+    def fit(self, X: pd.DataFrame, T: np.ndarray, Y: np.ndarray) -> SLearner:
         X_ = X.copy()
         if isinstance(X_, np.ndarray):
             X_ = pd.DataFrame(X_)

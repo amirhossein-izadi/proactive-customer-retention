@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
+from retention.bundle.model_bundle import RetentionPolicyBundle
+from retention.contracts.api_schema import CustomerInput, CustomerOutput
+from retention.contracts.inference_policy import classify_input
 from retention.data.joining import pivot_usage
 from retention.monitoring.audit import audit_event
 from retention.monitoring.metrics import (
@@ -21,9 +24,6 @@ from retention.monitoring.metrics import (
 )
 from retention.serving.dependencies import get_bundle, get_request_id
 from retention.settings.config import Settings, get_settings
-from retention.contracts.api_schema import CustomerInput, CustomerOutput
-from retention.contracts.inference_policy import classify_input
-from retention.bundle.model_bundle import RetentionPolicyBundle
 
 router = APIRouter(prefix="/v1", tags=["score"])
 
@@ -31,9 +31,9 @@ router = APIRouter(prefix="/v1", tags=["score"])
 @router.post("/score", response_model=CustomerOutput)
 async def score_customer(
     inp: CustomerInput,
-    settings: Settings = Depends(get_settings),
-    request_id: str = Depends(get_request_id),
-    bundle: RetentionPolicyBundle | None = Depends(get_bundle),
+    settings: Settings = Depends(get_settings),  # noqa: B008
+    request_id: str = Depends(get_request_id),  # noqa: ARG001 — dependency executes for request logging context  # noqa: B008
+    bundle: RetentionPolicyBundle | None = Depends(get_bundle),  # noqa: B008
 ):
     if bundle is None:
         raise HTTPException(status_code=503, detail="Model not loaded. Try /health or /ready.")

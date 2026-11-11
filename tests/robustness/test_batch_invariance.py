@@ -1,8 +1,6 @@
 """Batch invariance — same customer scored individually vs in batch must match."""
 
-import json
 
-import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 

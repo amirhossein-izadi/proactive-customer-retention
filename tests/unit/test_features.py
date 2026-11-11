@@ -1,10 +1,10 @@
 """Property-based tests for feature engineering invariants."""
 
-from hypothesis import given, strategies as st
-import pandas as pd
 import numpy as np
+from hypothesis import given
+from hypothesis import strategies as st
 
-from retention.features.temporal import _robust_slope, _max_zero_streak
+from retention.features.temporal import _max_zero_streak, _robust_slope
 
 
 @given(st.lists(st.floats(min_value=0, max_value=100), min_size=10, max_size=60))

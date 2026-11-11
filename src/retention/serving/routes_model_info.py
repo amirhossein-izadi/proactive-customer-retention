@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from retention.serving.dependencies import get_bundle
 from retention.bundle.model_bundle import RetentionPolicyBundle
+from retention.serving.dependencies import get_bundle
 
 router = APIRouter(prefix="/v1", tags=["model-info"])
 
 
 @router.get("/model-info")
-async def model_info(bundle: RetentionPolicyBundle | None = Depends(get_bundle)):
+async def model_info(bundle: RetentionPolicyBundle | None = Depends(get_bundle)):  # noqa: B008
     info = {
         "model_version": "unknown",
         "feature_version": "unknown",

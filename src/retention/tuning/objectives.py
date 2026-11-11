@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from catboost import CatBoostClassifier
-from lightgbm import LGBMClassifier
 import numpy as np
 import optuna
+from catboost import CatBoostClassifier
+from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.model_selection import StratifiedKFold
@@ -42,7 +42,7 @@ def _build_model(model_name: str, params: dict):
 def factual_objective(
     trial: optuna.Trial,
     X_raw,
-    T: np.ndarray,
+    T: np.ndarray,  # noqa: ARG001 — kept for uniform objective signature; factual model tunes P(Y|X)
     Y: np.ndarray,
     model_name: str,
     seed: int = 42,
@@ -82,15 +82,22 @@ def t_learner_objective(
     skf = StratifiedKFold(n_splits=inner_folds, shuffle=True, random_state=seed)
     factual = np.full(len(X_all), np.nan)
 
-    for tr, va in skf.split(X_all, np.array([f"{t}_{y}" for t, y in zip(T, Y)])):
+    for tr, va in skf.split(X_all, np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])):
         X_tr, X_va = X_all[tr], X_all[va]
         T_tr, T_va = T[tr], T[va]
         Y_tr = Y[tr]
         m0 = _build_model(model_name, params)
-        m1 = _build_model(model_name, {**params, "random_seed": seed + 1} if "random_seed" in params else params)
+        m1_params = (
+            {**params, "random_seed": seed + 1} if "random_seed" in params else params
+        )
+        m1 = _build_model(model_name, m1_params)
         m0.fit(X_tr[T_tr == 0], Y_tr[T_tr == 0])
         m1.fit(X_tr[T_tr == 1], Y_tr[T_tr == 1])
-        factual[va] = np.where(T_va == 1, m1.predict_proba(X_va)[:, 1], m0.predict_proba(X_va)[:, 1])
+        factual[va] = np.where(
+            T_va == 1, m1.predict_proba(X_va)[:, 1], m0.predict_proba(X_va)[:, 1]
+        )
 
     valid = np.isfinite(factual)
-    return float(log_loss(Y[valid], factual[valid]) + 0.5 * brier_score_loss(Y[valid], factual[valid]))
+    return float(
+        log_loss(Y[valid], factual[valid]) + 0.5 * brier_score_loss(Y[valid], factual[valid])
+    )

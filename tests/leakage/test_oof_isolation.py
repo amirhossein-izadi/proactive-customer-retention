@@ -18,7 +18,7 @@ def test_oof_no_leakage():
         m = LogisticRegression(max_iter=1000, random_state=42).fit(X[tr], y[tr])
         oof[va] = m.predict_proba(X[va])[:, 1]
 
-    assert np.all((0 <= oof) & (oof <= 1))
+    assert np.all((oof >= 0) & (oof <= 1))
     assert not np.all(oof == 0), "OOF predictions should not be all zeros"
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from retention.utils.hashing import sha256_file
@@ -25,7 +25,7 @@ def create_dataset_manifest(
         "schema_version": schema_version,
         "feature_version": feature_version,
         "usage_window": "[-59, 0]",
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "git_commit": git_commit,
     }
 

@@ -1,8 +1,9 @@
 """Policy ranking tests — deterministic, unique, exactly k, DR sign."""
 
 import numpy as np
-from retention.policy.tie_breaking import deterministic_top_k
+
 from retention.evaluation.policy_value import dr_pseudo_outcome
+from retention.policy.tie_breaking import deterministic_top_k
 
 
 def test_exactly_k():

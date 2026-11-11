@@ -17,8 +17,8 @@ import pandas as pd
 
 from retention.policy.support import overlap_support_mask
 from retention.policy.tie_breaking import deterministic_top_k
-from retention.utils.serialization import load_pickle
 from retention.utils.paths import CHAMPION_DIR
+from retention.utils.serialization import load_pickle
 
 REQUIRED = [
     "preprocessor.pkl",
@@ -39,7 +39,7 @@ class RetentionPolicyBundle:
         self.propensity = None
         self.meta: dict = {}
 
-    def load(self, path: str | Path = CHAMPION_DIR) -> "RetentionPolicyBundle":
+    def load(self, path: str | Path = CHAMPION_DIR) -> RetentionPolicyBundle:
         root = Path(path)
         for name in REQUIRED:
             p = root / name

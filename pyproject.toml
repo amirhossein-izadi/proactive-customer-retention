@@ -68,6 +68,15 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ARG", "C4"]
+# N803/N806: scikit-learn convention — design matrices (X, X_raw, X_tr),
+# labels (Y), and treatment indicators (T) use CAPS across ML codebases.
+# Renaming 250 occurrences would diverge from sklearn/statsmodels convention.
+ignore = ["N803", "N806"]
+
+[tool.ruff.lint.per-file-ignores]
+# sklearn TransformerMixin interface mandates fit(X, y) / get_feature_names_out(input_features)
+# signatures — unused args are structural, not dead code.
+"src/retention/features/builder.py" = ["ARG002"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -12,10 +12,17 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
 
-from retention.evaluation.predictive import compute_metrics as factual_metrics
 from retention.evaluation.policy_value import dr_policy_value
+from retention.evaluation.predictive import compute_metrics as factual_metrics
 from retention.features.builder import build_preprocessor
 from retention.modeling.s_learner import SLearner
+
+__all__ = [
+    "dr_policy_value_50",
+    "factual_metrics",
+    "repeated_cross_fit",
+    "repeated_cross_fit_slearner",
+]
 
 
 def repeated_cross_fit(
@@ -33,7 +40,7 @@ def repeated_cross_fit(
     Returns dict with p0, p1, e — each (n_samples, n_repeats).
     """
     n = len(X_raw)
-    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y)])
+    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])
     p0_all = np.zeros((n, n_repeats))
     p1_all = np.zeros((n, n_repeats))
     e_all = np.zeros((n, n_repeats))
@@ -48,7 +55,7 @@ def repeated_cross_fit(
             T_tr, Y_tr = T[tr], Y[tr]
             s = 42 + fold + rep * 10
 
-            def _mk(cfg, add):
+            def _mk(cfg, add, s):
                 kw = dict(cfg)
                 if seed_key:
                     kw[seed_key] = s + add
@@ -56,7 +63,7 @@ def repeated_cross_fit(
                     kw["random_seed"] = s + add
                 return kw
 
-            kw0, kw1 = _mk(params, 0), _mk(params, 1)
+            kw0, kw1 = _mk(params, 0, s), _mk(params, 1, s)
 
             m0 = model_cls(**kw0).fit(X_tr[T_tr == 0], Y_tr[T_tr == 0])
             m1 = model_cls(**kw1).fit(X_tr[T_tr == 1], Y_tr[T_tr == 1])
@@ -81,7 +88,7 @@ def repeated_cross_fit_slearner(
 ) -> dict[str, np.ndarray]:
     """OOF predictions for an S-learner (single model with T as feature)."""
     n = len(X_raw)
-    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y)])
+    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])
     p0_all = np.zeros((n, n_repeats))
     p1_all = np.zeros((n, n_repeats))
     e_all = np.zeros((n, n_repeats))
@@ -96,7 +103,7 @@ def repeated_cross_fit_slearner(
             T_tr, Y_tr = T[tr], Y[tr]
             s = 42 + fold + rep * 10
 
-            def _mk(cfg, add):
+            def _mk(cfg, add, s):
                 kw = dict(cfg)
                 if seed_key:
                     kw[seed_key] = s + add
@@ -104,7 +111,7 @@ def repeated_cross_fit_slearner(
                     kw["random_seed"] = s + add
                 return kw
 
-            kw_sl = _mk(params, 0)
+            kw_sl = _mk(params, 0, s)
 
             sl = SLearner(model_cls(**kw_sl))
             sl.fit(pd.DataFrame(X_tr), T_tr, Y_tr)

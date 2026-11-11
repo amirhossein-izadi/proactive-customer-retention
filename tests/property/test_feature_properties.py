@@ -1,7 +1,8 @@
 """Feature invariants — building features must never produce NaN or out-of-range values."""
 
 import numpy as np
-from retention.features.temporal import _robust_slope, _max_zero_streak
+
+from retention.features.temporal import _max_zero_streak, _robust_slope
 
 
 def test_robust_slope_no_nan():

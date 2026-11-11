@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 import pandas as pd
 import pandera.pandas as pa
 from pandera.typing.pandas import DataFrame
@@ -32,10 +34,8 @@ def validate_customers(df: pd.DataFrame) -> DataFrame[CustomerSchema]:
     try:
         return DataFrame[CustomerSchema](df)
     except Exception:
-        try:
+        with contextlib.suppress(Exception):
             SCHEMA_VALIDATION_FAILURES.labels(error_type="customer").inc()
-        except Exception:
-            pass
         raise
 
 
@@ -43,10 +43,8 @@ def validate_usage(df: pd.DataFrame) -> DataFrame[UsageSchema]:
     try:
         return DataFrame[UsageSchema](df)
     except Exception:
-        try:
+        with contextlib.suppress(Exception):
             SCHEMA_VALIDATION_FAILURES.labels(error_type="usage").inc()
-        except Exception:
-            pass
         raise
 
 

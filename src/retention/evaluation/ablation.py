@@ -5,9 +5,6 @@ Run via ``retention ablate`` or ``python -m retention.evaluation.ablation``.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
@@ -18,8 +15,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 from retention.data.loading import load_all
 from retention.features.builder import (
-    PCAEmbedding,
     STATIC_INPUT,
+    PCAEmbedding,
     StaticEngineer,
     TemporalEngineer,
     _pivot_usage,
@@ -56,28 +53,44 @@ def _build_configs() -> dict[str, ColumnTransformer]:
         "static_only": ColumnTransformer(
             [
                 ("static", static, STATIC_FEATURE_COLS),
-                ("cat", OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"), ["package", "subscription_type"]),
+                (
+                    "cat",
+                    OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"),
+                    ["package", "subscription_type"],
+                ),
             ]
         ),
         "temporal+cat": ColumnTransformer(
             [
                 ("temporal", temporal, USAGE_COLS),
-                ("cat", OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"), ["package", "subscription_type"]),
+                (
+                    "cat",
+                    OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"),
+                    ["package", "subscription_type"],
+                ),
             ]
         ),
         "static+temporal+cat": ColumnTransformer(
             [
                 ("static", static, STATIC_FEATURE_COLS),
                 ("temporal", temporal, USAGE_COLS),
-                ("cat", OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"), ["package", "subscription_type"]),
+                (
+                    "cat",
+                    OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"),
+                    ["package", "subscription_type"],
+                ),
             ]
         ),
         "full": ColumnTransformer(
             [
                 ("static", StaticEngineer(), STATIC_FEATURE_COLS),
                 ("temporal", TemporalEngineer(), USAGE_COLS),
-                ("pca", PCAEmbedding(n_components=5), USAGE_COLS),
-                ("cat", OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"), ["package", "subscription_type"]),
+                ("pca", pca, USAGE_COLS),
+                (
+                    "cat",
+                    OneHotEncoder(drop="first", sparse_output=False, handle_unknown="ignore"),
+                    ["package", "subscription_type"],
+                ),
             ]
         ),
     }
@@ -86,7 +99,7 @@ def _build_configs() -> dict[str, ColumnTransformer]:
 def test_ablation() -> list[dict]:
     X_raw, T, Y = _prep_data()
     configs = _build_configs()
-    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y)])
+    stratum = np.array([f"{t}_{y}" for t, y in zip(T, Y, strict=True)])
     skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=SEED["outer_cv_seed"])
 
     results = []

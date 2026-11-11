@@ -22,12 +22,10 @@ from retention.contracts.raw_data import usage_columns
 from retention.data.joining import pivot_usage as _pivot_usage  # noqa: F401  (re-export)
 from retention.features.missingness import missingness_features
 from retention.features.temporal import (
-    _days_since_last,
     _detrend,
     _max_drawdown,
     _max_zero_streak,
     _robust_slope,
-    build_temporal_features,
 )
 
 USAGE_COLS = usage_columns()

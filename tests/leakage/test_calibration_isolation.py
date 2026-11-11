@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss
 
 
 def test_calibrator_fit_on_train_only():
@@ -21,8 +22,9 @@ def test_calibrator_fit_on_train_only():
     cal.fit(X_train, y_train)
 
     proba = cal.predict_proba(X_val)[:, 1]
-    assert np.all((0 <= proba) & (proba <= 1))
+    assert np.all((proba >= 0) & (proba <= 1))
     assert proba.shape == (n_val,)
+    assert brier_score_loss(y_val, proba) < 0.15, "calibrator should generalize to unseen fold"
 
 
 def test_calibrator_not_refit_on_val():
@@ -40,3 +42,4 @@ def test_calibrator_not_refit_on_val():
     p_val = cal.predict_proba(X_val)[:, 1]
     assert p_train.shape == (200,)
     assert p_val.shape == (100,)
+    assert brier_score_loss(y_val, p_val) < 0.15, "no-refit calibrator should generalize to val"

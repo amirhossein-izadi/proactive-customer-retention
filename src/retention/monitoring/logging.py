@@ -19,7 +19,7 @@ def hash_identifier(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()[:12]
 
 
-def filter_pii(logger, method_name, event_dict):
+def filter_pii(logger, method_name, event_dict):  # noqa: ARG001 — structlog processor signature
     """Remove PII fields from log output."""
     for field in PII_FIELDS:
         event_dict.pop(field, None)

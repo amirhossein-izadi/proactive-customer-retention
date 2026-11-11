@@ -13,23 +13,24 @@ from retention.bundle.compatibility import check_bundle
 from retention.monitoring.logging import configure_logging
 from retention.monitoring.metrics import MODEL_LOADED
 from retention.serving.dependencies import get_bundle
-from retention.utils.paths import CHAMPION_DIR
 from retention.serving.exception_handlers import register_handlers
 from retention.serving.middleware import PrometheusMiddleware
 from retention.serving.routes_health import router as health_router
-from retention.serving.routes_score import router as score_router
-from retention.serving.routes_rank import router as rank_router
 from retention.serving.routes_model_info import router as model_info_router
+from retention.serving.routes_rank import router as rank_router
+from retention.serving.routes_score import router as score_router
+from retention.utils.paths import CHAMPION_DIR
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):  # noqa: ARG001 — FastAPI lifespan signature
     configure_logging("retention-api")
     b = get_bundle()
     if b is not None:
         compat = check_bundle(CHAMPION_DIR)
         print(
-            f"Bundle compatibility: {'PASS' if compat['passed'] else 'FAIL'} ({len(compat.get('errors', []))} errors)"
+            f"Bundle compatibility: {'PASS' if compat['passed'] else 'FAIL'} "
+            f"({len(compat.get('errors', []))} errors)"
         )
     else:
         print("No champion bundle found. API will return 503 on /v1/score.")

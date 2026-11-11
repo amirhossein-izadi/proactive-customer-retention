@@ -5,7 +5,10 @@ from retention.data.splitting import generate_seed_manifest
 
 def test_generates_six_seeds():
     sm = generate_seed_manifest(42)
-    keys = {"master_seed", "holdout_seed", "outer_cv_seed", "inner_cv_seed", "model_seed", "bootstrap_seed"}
+    keys = {
+        "master_seed", "holdout_seed", "outer_cv_seed",
+        "inner_cv_seed", "model_seed", "bootstrap_seed",
+    }
     assert keys.issubset(sm.keys()), f"Missing keys: {keys - sm.keys()}"
 
 

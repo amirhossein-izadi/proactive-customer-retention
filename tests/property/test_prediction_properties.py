@@ -5,12 +5,12 @@ import numpy as np
 
 def test_probability_bounds():
     probs = np.array([0.0, 0.5, 1.0, 0.001, 0.999])
-    assert np.all((0 <= probs) & (probs <= 1))
+    assert np.all((probs >= 0) & (probs <= 1))
 
 
 def test_uplift_bounds():
     uplift = np.array([-1.0, 0.0, 0.5, 1.0])
-    assert np.all((-1 <= uplift) & (uplift <= 1))
+    assert np.all((uplift >= -1) & (uplift <= 1))
 
 
 def test_uplift_equals_difference():

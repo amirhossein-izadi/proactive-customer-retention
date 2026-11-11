@@ -1,6 +1,7 @@
 """Ranking invariants — deterministic, unique, exactly k customers, correct ordering."""
 
 import numpy as np
+
 from retention.policy.tie_breaking import deterministic_top_k
 
 

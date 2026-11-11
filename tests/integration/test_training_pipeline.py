@@ -1,10 +1,11 @@
 """Training pipeline — verify trainer can be imported and basic structure is valid."""
 
 import numpy as np
-from retention.utils.seeds import generate_seeds
-from retention.modeling.t_learner import TLearner
-from retention.modeling.s_learner import SLearner
 from sklearn.linear_model import LogisticRegression
+
+from retention.modeling.s_learner import SLearner
+from retention.modeling.t_learner import TLearner
+from retention.utils.seeds import generate_seeds
 
 
 def test_t_learner_instantiation():
@@ -26,8 +27,8 @@ def test_t_learner_train_and_predict():
     assert p0.shape == (100,)
     assert p1.shape == (100,)
     assert uplift.shape == (100,)
-    assert np.all((0 <= p0) & (p0 <= 1))
-    assert np.all((0 <= p1) & (p1 <= 1))
+    assert np.all((p0 >= 0) & (p0 <= 1))
+    assert np.all((p1 >= 0) & (p1 <= 1))
 
 
 def test_s_learner_train_and_predict():

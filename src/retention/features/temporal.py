@@ -1,6 +1,7 @@
 """Temporal feature engineering from 60-day usage history."""
 
 from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from numpy.polynomial import polynomial
@@ -17,7 +18,6 @@ def build_temporal_features(usage_df: pd.DataFrame) -> pd.DataFrame:
     recent = arr[:, 30:]
     last_7 = arr[:, -7:] if arr.shape[1] >= 7 else arr
     last_14 = arr[:, -14:] if arr.shape[1] >= 14 else arr
-    last_30 = arr[:, -30:] if arr.shape[1] >= 30 else arr
 
     features["usage_mean"] = np.nanmean(arr, axis=1)
     features["usage_median"] = np.nanmedian(arr, axis=1)
