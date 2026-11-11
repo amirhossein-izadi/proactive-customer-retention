@@ -1,6 +1,6 @@
 # Model Card: Didar Retention Champion
 
-- **Model family**: CatBoost T-learner
+- **Model family**: Logistic T-learner
 - **Model version**: 1.1.0
 - **Feature version**: 2.2.0
 - **Data version**: didar_retention_v1

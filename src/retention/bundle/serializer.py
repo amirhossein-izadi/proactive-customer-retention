@@ -1,15 +1,19 @@
 """Bundle builder — trains champion outcome models + calibrated serving models.
 
-Architecture:
-  - m0, m1:  CatBoost outcome models (one per treatment arm) — used for SHAP explanations
-  - cal0, cal1: CalibratedClassifierCV wrapping CatBoost with internal 3-fold CV
-                for Platt scaling — used for serving/production predictions
+Architecture (estimator family follows the trained champion via
+``champion_spec.json`` — legacy CatBoost fallback when no spec exists):
+  - m0, m1:  outcome models (one per treatment arm) — used for SHAP explanations
+  - cal0, cal1: CalibratedClassifierCV wrapping the champion with internal
+                3-fold CV for Platt scaling — used for serving predictions
   - Serving pipeline: preprocessor → CalibratedClassifierCV → calibrated probabilities
   - The CalibratedClassifierCV trains its own models internally with train/cal split,
     ensuring proper calibration on held-out predictions within each arm.
 """
 
 from __future__ import annotations
+
+import importlib
+import json
 
 import numpy as np
 import pandas as pd
@@ -31,8 +35,9 @@ from retention.data.loading import load_all
 from retention.features.builder import build_preprocessor
 from retention.features.feature_names import all_feature_names
 from retention.features.registry import FEATURE_VERSION
+from retention.modeling.train.shared import model_kw
 from retention.settings.config import get_settings
-from retention.utils.paths import CHAMPION_DIR, SPLITS
+from retention.utils.paths import CHAMPION_DIR, OOF_DIR, SPLITS
 from retention.utils.serialization import save_json, save_pickle
 
 CHAMPION_PARAMS = {
@@ -41,6 +46,46 @@ CHAMPION_PARAMS = {
     "verbose": False, "allow_writing_files": False,
 }
 
+_TREE_FAMILIES = ("catboost", "lightgbm", "xgboost")
+_FAMILY_PRETTY = {
+    "logistic": "Logistic", "catboost": "CatBoost",
+    "lightgbm": "LightGBM", "xgboost": "XGBoost",
+}
+_ARCH_PRETTY = {
+    "t_learner": "T-learner", "s_learner": "S-learner",
+    "si_learner": "S-learner+interactions",
+    "dr_learner": "DR-learner", "x_learner": "X-learner",
+}
+
+
+def _load_champion_spec() -> dict | None:
+    """Champion spec written by the training runner; None → legacy fallback."""
+    spec_path = OOF_DIR / "champion_spec.json"
+    if not spec_path.exists():
+        return None
+    return json.loads(spec_path.read_text())
+
+
+def _champion_estimator(spec: dict | None, seed_value: int):
+    """Instantiate the champion estimator family with training-time params."""
+    if spec is None:
+        return _catboost(random_seed=seed_value)
+    module = importlib.import_module(spec["cls_module"])
+    cls = getattr(module, spec["cls_name"])
+    return cls(**model_kw(spec["params"], spec.get("seed_key"), seed_value))
+
+
+def _champion_family(spec: dict | None) -> tuple[str, str]:
+    """(pretty family label, SHAP explainer kind) for the champion."""
+    if spec is None:
+        return "CatBoost T-learner", "tree"
+    name = spec.get("name", "")
+    family = name.split("_")[0] if "_" in name else name
+    pretty = _FAMILY_PRETTY.get(family, family.replace("_", " ").title())
+    arch = _ARCH_PRETTY.get(spec.get("ltype", ""), spec.get("ltype", ""))
+    kind = "tree" if family in _TREE_FAMILIES else "linear"
+    return f"{pretty} {arch}", kind
+
 
 def _catboost(**kw) -> CatBoostClassifier:
     return CatBoostClassifier(**{**CHAMPION_PARAMS, **kw})
@@ -48,6 +93,12 @@ def _catboost(**kw) -> CatBoostClassifier:
 
 def build_champion_bundle() -> None:
     CHAMPION_DIR.mkdir(parents=True, exist_ok=True)
+
+    spec = _load_champion_spec()
+    if spec is None:
+        print("  No champion_spec.json — legacy CatBoost fallback")
+    family_label, explainer_kind = _champion_family(spec)
+    print(f"  Champion family: {family_label}")
 
     dev_ids = pd.read_csv(SPLITS / "development_set.csv")["customer_id"]
     customers, usage = load_all()
@@ -61,18 +112,18 @@ def build_champion_bundle() -> None:
     save_pickle(prep, CHAMPION_DIR / "preprocessor.pkl")
 
     # ── Outcome models (for SHAP / analysis) ──
-    m0 = _catboost(random_seed=42).fit(X_all[T == 0], Y[T == 0])
-    m1 = _catboost(random_seed=43).fit(X_all[T == 1], Y[T == 1])
+    m0 = _champion_estimator(spec, 42).fit(X_all[T == 0], Y[T == 0])
+    m1 = _champion_estimator(spec, 43).fit(X_all[T == 1], Y[T == 1])
     save_pickle(m0, CHAMPION_DIR / "m0.pkl")
     save_pickle(m1, CHAMPION_DIR / "m1.pkl")
 
     # ── Calibrated serving models ──
-    # CalibratedClassifierCV does internal 3-fold CV: trains CatBoost on 2/3,
+    # CalibratedClassifierCV does internal 3-fold CV: trains the champion on 2/3,
     # fits Platt scaler on held-out 1/3 per fold, averages 3 calibrated models.
-    cal0 = CalibratedClassifierCV(_catboost(random_seed=44), method="sigmoid", cv=3).fit(
+    cal0 = CalibratedClassifierCV(_champion_estimator(spec, 44), method="sigmoid", cv=3).fit(
         X_all[T == 0], Y[T == 0]
     )
-    cal1 = CalibratedClassifierCV(_catboost(random_seed=45), method="sigmoid", cv=3).fit(
+    cal1 = CalibratedClassifierCV(_champion_estimator(spec, 45), method="sigmoid", cv=3).fit(
         X_all[T == 1], Y[T == 1]
     )
     save_pickle(cal0, CHAMPION_DIR / "calibrator_0.pkl")
@@ -87,9 +138,14 @@ def build_champion_bundle() -> None:
         try:
             fnames = all_feature_names(include_pca=True)
             sample = X_all[: min(len(X_all), 1000)]
+            background = sample[: min(100, len(sample))]
             for arm_label, arm_model in [("arm0", m0), ("arm1", m1)]:
-                explainer = shap.TreeExplainer(arm_model)
-                sv = explainer.shap_values(sample)
+                if explainer_kind == "tree":
+                    explainer = shap.TreeExplainer(arm_model)
+                    sv = explainer.shap_values(sample)
+                else:
+                    explainer = shap.LinearExplainer(arm_model, background)
+                    sv = explainer.shap_values(sample)
                 if isinstance(sv, list):
                     sv = sv[1]
                 imp = np.abs(sv).mean(0)
@@ -110,13 +166,14 @@ def build_champion_bundle() -> None:
     settings = get_settings()
     write_champion_manifests(
         CHAMPION_DIR,
-        model_family="CatBoost T-learner",
+        model_family=family_label,
         model_version=settings.model_version,
         feature_version=FEATURE_VERSION,
         n_features=n_features,
         n_dev_samples=len(X_all),
         extra_metadata={
-            "champion_params": CHAMPION_PARAMS,
+            "champion_name": spec["name"] if spec else "catboost_t (legacy)",
+            "champion_params": spec["params"] if spec else CHAMPION_PARAMS,
             "calibration": "CalibratedClassifierCV, Platt sigmoid, internal 3-fold CV",
         },
     )

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import pickle
 from pathlib import Path
 
@@ -16,6 +17,46 @@ from retention.bundle.model_bundle import RetentionPolicyBundle
 ANALYSIS_ARTIFACTS = ["m0.pkl", "m1.pkl"]
 
 REQUIRED_ARTIFACTS = list(SERVING_REQUIRED) + ANALYSIS_ARTIFACTS
+
+# champion name prefix → expected class-name fragment of the pickled arm model.
+# Guards against train/serve skew: reporting/ranking describe the champion from
+# `champion_spec.json`, so the bundle must ship that same estimator family.
+CHAMPION_CLASS_HINTS = {
+    "logistic": "LogisticRegression",
+    "catboost": "CatBoost",
+    "lightgbm": "LGBM",
+    "xgboost": "XGB",
+}
+
+
+def _check_champion_consistency(root: Path, result: dict) -> None:
+    """Fail when metadata's champion family disagrees with the pickled arm model."""
+    meta_path = root / "metadata.json"
+    m0_path = root / "m0.pkl"
+    if not meta_path.exists() or not m0_path.exists():
+        return
+    meta = json.loads(meta_path.read_text())
+    champion_name = meta.get("champion_name", "")
+    if not champion_name:
+        result["checks"]["champion_consistency"] = "skipped (legacy metadata)"
+        return
+    family = champion_name.split("_")[0]
+    expected = CHAMPION_CLASS_HINTS.get(family)
+    if expected is None:
+        result["checks"]["champion_consistency"] = f"skipped (unknown family {family})"
+        return
+    with open(m0_path, "rb") as f:
+        arm_model = pickle.load(f)
+    actual = type(arm_model).__name__
+    if expected not in actual:
+        result["passed"] = False
+        result["errors"].append(
+            f"Train/serve skew: metadata champion '{champion_name}' expects {expected}, "
+            f"but m0.pkl is {actual}"
+        )
+        result["checks"]["champion_consistency"] = f"mismatch: {actual} != {expected}"
+    else:
+        result["checks"]["champion_consistency"] = f"ok ({actual})"
 
 
 def check_bundle(dir_path: str | Path) -> dict:
@@ -49,6 +90,10 @@ def check_bundle(dir_path: str | Path) -> dict:
             result["checks"][name] = "present"
         if not result["passed"]:
             return result  # fail fast: no point continuing
+
+    _check_champion_consistency(root, result)
+    if not result["passed"]:
+        return result
 
     # Smoke prediction on synthetic customer
     np.random.seed(42)

@@ -183,6 +183,25 @@ def train_experiment(use_optuna: bool = False) -> list[dict]:
         mlflow.log_artifact(str(champion_path))
         print(f"Champion test predictions saved to {champion_path}")
 
+        # Champion spec — lets `retention bundle` rebuild the *winning*
+        # estimator family instead of assuming a hardcoded model.
+        champ_cfg = next((c for c in loaded if c[0] == champion["model"]), None)
+        if champ_cfg is not None:
+            _, champ_cls, champ_params, champ_seed_key, champ_ltype = champ_cfg
+            save_json(
+                {
+                    "name": champion["model"],
+                    "ltype": champ_ltype,
+                    "params": champ_params,
+                    "seed_key": champ_seed_key,
+                    "cls_module": champ_cls.__module__,
+                    "cls_name": champ_cls.__name__,
+                },
+                OOF_DIR / "champion_spec.json",
+            )
+            mlflow.log_artifact(str(OOF_DIR / "champion_spec.json"))
+            print(f"Champion spec saved to {OOF_DIR / 'champion_spec.json'}")
+
         save_json(
             {
                 "python": sys.version,
